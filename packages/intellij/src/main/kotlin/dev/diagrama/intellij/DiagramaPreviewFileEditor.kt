@@ -12,6 +12,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.jcef.JBCefBrowser
+import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
@@ -31,7 +32,7 @@ class DiagramaPreviewFileEditor(
 
     private val browser = JBCefBrowser()
     private val document: Document? = FileDocumentManager.getInstance().getDocument(file)
-    private val persistQuery = JBCefJSQuery.create(browser)
+    private val persistQuery = JBCefJSQuery.create(browser as JBCefBrowserBase)
     private var ready = false
 
     private val docListener = object : DocumentListener {

@@ -23,6 +23,11 @@ this surface adds no text editor of its own — the IDE provides it.
 
 ## Build & run
 
+Uses the **IntelliJ Platform Gradle Plugin 2.x** (`org.jetbrains.intellij.platform`),
+which requires **Gradle 9+** (wrapper pinned to 9.6) and a **JDK 17–21** to launch
+(Gradle daemon JVM pinned to 21 via `gradle/gradle-daemon-jvm.properties`; set
+`JAVA_HOME` to a JDK ≤ 21 if your default is newer).
+
 ```sh
 # from the repo root: build the core bundle into plugin resources first
 ./build-intellij-bundle.sh
@@ -34,7 +39,7 @@ cd packages/intellij
 
 Open any `examples/*.diagrama.kdl` in the sandbox IDE to see the split preview.
 
-> Status: **scaffold** — compiles against the IntelliJ Platform SDK (downloaded by the
-> Gradle `org.jetbrains.intellij` plugin on first build); not yet verified end-to-end
-> in a running IDE. `dist/diagrama.min.js` is git-ignored in resources; the script
-> copies it in.
+> Status: **scaffold** — Kotlin compiles against the IntelliJ Platform 2024.1 SDK
+> (downloaded by the 2.x Gradle plugin on first build). Runtime verification in a
+> running IDE (JCEF needs a display) still pending. `dist/diagrama.min.js` is
+> git-ignored in resources; `build-intellij-bundle.sh` copies it in.
