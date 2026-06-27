@@ -113,9 +113,9 @@ function drawGraph(canvas, model, lo, theme, opts) {
   for (const id in lo.nodes) {
     const n = lo.nodes[id];
     const el = n.el;
-    const parts = (el.attrs || el.methods)
-      ? classParts(el, n, theme)
-      : nodeParts(el, n, theme);
+    const build = model.type === 'state' ? stateParts
+      : (el.attrs || el.methods) ? classParts : nodeParts;
+    const parts = build(el, n, theme);
 
     const fg = makeGroup(parts, { left: n.x, top: n.y, selectable: !opts.readOnly,
       hasControls: false, hasBorders: !opts.readOnly, lockScalingX: true, lockScalingY: true, lockRotation: true });
@@ -192,6 +192,25 @@ function nodeParts(el, n, theme) {
   return parts;
 }
 
+/** State-machine node: state/composite (rounded), initial/final dots, choice diamond. */
+function stateParts(el, n, theme) {
+  const w = n.width, h = n.height;
+  const base = { originX: 'center', originY: 'center', fill: el.style?.fill || theme.fill,
+    stroke: el.style?.stroke || theme.stroke, strokeWidth: 1.4 };
+  if (el.kind === 'initial') return [new Circle({ ...base, radius: 9, fill: theme.stroke })];
+  if (el.kind === 'final') return [
+    new Circle({ ...base, radius: 11, fill: 'transparent' }),
+    new Circle({ ...base, radius: 6, fill: theme.stroke }),
+  ];
+  if (el.kind === 'choice') return [new Polygon(
+    [{ x: 0, y: -h / 2 }, { x: w / 2, y: 0 }, { x: 0, y: h / 2 }, { x: -w / 2, y: 0 }], base)];
+  const parts = [new Rect({ ...base, width: w, height: h, rx: 12, ry: 12 })];
+  if (el.kind === 'composite') parts.push(new Rect({ ...base, width: w - 6, height: h - 6, rx: 10, ry: 10, fill: 'transparent' }));
+  parts.push(new FabricText(el.label || el.id, { left: 0, top: 0, originX: 'center', originY: 'center',
+    fontSize: 12, fill: theme.text }));
+  return parts;
+}
+
 /** UML class node: 3 compartments (name[/stereotype] · attributes · methods). */
 function classParts(el, n, theme) {
   const w = n.width, h = n.height, hw = w / 2, hh = h / 2;
@@ -231,7 +250,8 @@ function drawEdge(canvas, e, lo, theme) {
   placeEnd(canvas, makeEnd(fromEnd, theme.stroke), p.x, p.y, deg + 180);
 
   const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
-  if (e.el?.label) canvas.add(new FabricText(e.el.label, { left: mx, top: my - 9,
+  const label = e.el?.label || transitionLabel(e.el);
+  if (label) canvas.add(new FabricText(label, { left: mx, top: my - 9,
     fontSize: 10, fill: theme.muted, backgroundColor: theme.bg, originX: 'center',
     selectable: false, evented: false }));
   const gt = glyphText(glyph);
@@ -244,6 +264,13 @@ function drawEdge(canvas, e, lo, theme) {
   // cardinality near the ends
   if (e.el?.fromCard) canvas.add(cardLabel(e.el.fromCard, p, q, theme));
   if (e.el?.toCard) canvas.add(cardLabel(e.el.toCard, q, p, theme));
+}
+
+/** `trigger [guard] / action` (spec §5.3). */
+function transitionLabel(el) {
+  if (!el?.trigger && !el?.guard && !el?.action) return null;
+  return [el.trigger || '', el.guard ? `[${el.guard}]` : '', el.action ? `/ ${el.action}` : '']
+    .filter(Boolean).join(' ');
 }
 
 function cardLabel(text, at, toward, theme) {

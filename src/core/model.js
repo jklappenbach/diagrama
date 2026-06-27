@@ -139,6 +139,7 @@ export function buildModel(textOrDoc, opts = {}) {
           from: a[0], to: a[1], kind: p.kind, label: p.label, dir: p.dir,
           rel: p.rel, line: p.line, fromEnd: p['from-end'], toEnd: p['to-end'],
           fromCard: p['from-card'], toCard: p['to-card'], glyph: p.glyph,
+          trigger: p.trigger, guard: p.guard, action: p.action,
         });
         break;
       case 'group':

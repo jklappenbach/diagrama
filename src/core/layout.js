@@ -16,6 +16,7 @@ export const memberLine = (m, kind) => {
 };
 
 export function estimateSize(el, fontSize = 13) {
+  if (['initial', 'final', 'choice'].includes(el.kind)) return { width: 28, height: 28 }; // state pseudo-nodes
   if (el.attrs || el.methods) { // class compartments
     const lines = [
       el.label || el.id,

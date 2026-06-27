@@ -1,0 +1,22 @@
+diagram type="state" title="Order lifecycle" theme="light" {
+    layout engine="dagre" direction="TB" spacing=45
+
+    node "i"         kind="initial"
+    node "cart"      label="Cart"      kind="state"
+    node "placed"    label="Placed"    kind="state"
+    node "paid"      label="Paid"      kind="state"
+    node "check"     kind="choice"
+    node "shipped"   label="Shipped"   kind="state"
+    node "cancelled" label="Cancelled" kind="state"
+    node "f"         kind="final"
+
+    edge "i"       "cart"      kind="transition"
+    edge "cart"    "placed"    kind="transition" trigger="checkout"
+    edge "placed"  "paid"      kind="transition" trigger="pay" guard="funds ok"
+    edge "paid"    "check"     kind="transition"
+    edge "check"   "shipped"   kind="transition" guard="in stock" action="reserve"
+    edge "check"   "cancelled" kind="transition" guard="out of stock"
+    edge "placed"  "cancelled" kind="transition" trigger="cancel"
+    edge "shipped" "f"         kind="transition" trigger="delivered"
+    edge "cancelled" "f"       kind="transition"
+}
