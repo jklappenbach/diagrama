@@ -41,16 +41,32 @@
     const stage = document.getElementById('stage');
     examples.forEach((e) => pick.add(new Option(e, e)));
 
-    let ctl;
-    async function show(file) {
-      if (ctl) ctl.destroy();
-      ctl = await Diagrama.load('./' + file, '#stage');
+    function fail(msg) {
+      stage.innerHTML = '<pre style="color:#b00020;padding:16px;white-space:pre-wrap;font:13px monospace">'
+        + msg + '</pre>';
     }
-    pick.onchange = () => show(pick.value);
-    document.getElementById('zin').onclick = () => ctl && ctl.zoomIn();
-    document.getElementById('zout').onclick = () => ctl && ctl.zoomOut();
-    document.getElementById('reset').onclick = () => ctl && ctl.reset();
-    show(examples[0]);
+    if (!window.Diagrama) {
+      fail('diagrama.min.js not loaded.\nRun `npm run bundle` at the repo root, then reload.');
+    } else if (location.protocol === 'file:') {
+      fail('This page fetches the .kdl files, which browsers block over file://.\n\n'
+        + 'Serve it instead — from the repo root:\n'
+        + '    npx vite examples      (then open the printed http://localhost URL)\n'
+        + '    # or: python3 -m http.server -d examples 8080\n\n'
+        + 'Or just double-click examples/embedded-demo.html (KDL inlined, no fetch).');
+    } else {
+      let ctl;
+      async function show(file) {
+        try {
+          if (ctl) ctl.destroy();
+          ctl = await Diagrama.load('./' + file, '#stage');
+        } catch (e) { fail('Failed to render ' + file + ':\n' + (e && e.stack || e)); }
+      }
+      pick.onchange = () => show(pick.value);
+      document.getElementById('zin').onclick = () => ctl && ctl.zoomIn();
+      document.getElementById('zout').onclick = () => ctl && ctl.zoomOut();
+      document.getElementById('reset').onclick = () => ctl && ctl.reset();
+      show(examples[0]);
+    }
   </script>
 </body>
 </html>

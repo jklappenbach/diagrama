@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>diagrama — embedded demo (works from file://)</title>
+  <style>
+    body { font: 14px system-ui, sans-serif; margin: 0; }
+    h2 { margin: 14px; font-size: 15px; }
+    .diagrama { height: 460px; border: 1px solid #e2e5ee; margin: 0 14px 24px; }
+    #err { color: #b00020; white-space: pre-wrap; font: 13px monospace; margin: 14px; }
+  </style>
+</head>
+<body>
+  <h2>diagrama embedded demo — no server needed (KDL is inlined, no fetch)</h2>
+  <div id="err"></div>
+
+  <h2>system</h2>
+  <div class="diagrama">
+    <script type="application/diagrama+kdl">
+diagram type="system" title="Cajeta layers" theme="light" {
+    layout engine="dagre" direction="TB" spacing=50
+    group "g-fw"  label="Framework" kind="boundary" { member "primavera" }
+    group "g-lib" label="Libraries" kind="cluster"  { member "http"; member "cluster" }
+    group "g-std" label="Stdlib"    kind="zone"     { member "ionet" }
+    node "primavera" label="primavera"   kind="service"
+    node "http"      label="cajeta-http" kind="service" group="g-lib"
+    node "cluster"   label="cajeta-cluster" kind="service" group="g-lib"
+    node "ionet"     label="cajeta.io.net" kind="service" group="g-std"
+    node "store"     label="Session store" kind="cache"
+    node "events"    label="events"        kind="topic"
+    edge "primavera" "http"    kind="dependency" label="web"
+    edge "primavera" "cluster" rel="owns" to-card="N"
+    edge "http"      "ionet"   kind="dependency"
+    edge "cluster"   "store"   rel="refs" line="dashed"
+    edge "cluster"   "events"  kind="publishes"
+    }
+    </script>
+  </div>
+
+  <h2>gantt</h2>
+  <div class="diagrama">
+    <script type="application/diagrama+kdl">
+diagram type="gantt" title="Plan" mode="calendar" {
+    calendar start="2026-07-01" unit="day" workweek="mon-fri"
+    lane "be" label="Backend"; lane "fe" label="Frontend"
+    start "start" label="Start"
+    task "spec" title="Spec" cost=2 lane="be" { deps "start" }
+    task "api"  title="API"  cost=5 lane="be" { deps "spec" }
+    task "ui"   title="UI"   cost=4 lane="fe" { deps "spec" }
+    task "integ" title="Integration" cost=2 lane="be" { deps "api" "ui" }
+    }
+    </script>
+  </div>
+
+  <script src="../dist/diagrama.min.js"></script>
+  <script>
+    window.addEventListener('error', (e) => {
+      document.getElementById('err').textContent = 'JS error: ' + (e.message || e);
+    });
+    try {
+      if (!window.Diagrama) throw new Error('diagrama.min.js not loaded — run `npm run bundle` at the repo root first.');
+      Diagrama.renderAll();
+    } catch (e) {
+      document.getElementById('err').textContent = String(e && e.stack || e);
+    }
+  </script>
+</body>
+</html>

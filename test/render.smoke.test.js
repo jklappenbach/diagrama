@@ -32,9 +32,9 @@ beforeAll(() => {
 });
 
 describe('render smoke (headless fabric)', () => {
-  let renderKdl, buildModel;
+  let renderKdl, buildModel, renderAll;
   beforeAll(async () => {
-    ({ renderKdl, buildModel } = await import('../src/app/index.js'));
+    ({ renderKdl, buildModel, renderAll } = await import('../src/app/index.js'));
   });
 
   for (const file of [
@@ -53,6 +53,20 @@ describe('render smoke (headless fabric)', () => {
       ctl.destroy();
     });
   }
+
+  it('renderAll() renders an inline embed block (the embedded-demo path)', () => {
+    const div = document.createElement('div');
+    div.className = 'diagrama';
+    const s = document.createElement('script');
+    s.type = 'application/diagrama+kdl';
+    s.textContent = 'diagram type="system" {\n  node "a" label="A"\n  node "b" label="B"\n  edge "a" "b" kind="dependency"\n}';
+    div.appendChild(s);
+    document.body.appendChild(div);
+    const ctls = renderAll();
+    expect(ctls.length).toBe(1);
+    expect(ctls[0].canvas.getObjects().length).toBeGreaterThan(0);
+    ctls[0].destroy();
+  });
 
   it('persists a drag as a minimal KDL diff', () => {
     const el = document.createElement('div');
