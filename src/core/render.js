@@ -29,7 +29,7 @@ function shapeParts(family, w, h, fill, stroke) {
     // stroked across the top; the OPAQUE cap ellipse is drawn over it to form the rim.
     const rx = w / 2, ry = Math.min(10, h * 0.18);
     const cyTop = -h / 2 + ry, cyBot = h / 2 - ry;
-    const body = `M ${rx} ${cyTop} L ${rx} ${cyBot} A ${rx} ${ry} 0 0 0 ${-rx} ${cyBot} L ${-rx} ${cyTop}`;
+    const body = `M ${rx} ${cyTop} L ${rx} ${cyBot} A ${rx} ${ry} 0 0 1 ${-rx} ${cyBot} L ${-rx} ${cyTop}`;
     return [
       new Path(body, { ...common, fill, left: 0, top: ry / 2 }), // top:ry/2 aligns the bbox-centered path
       new Ellipse({ ...common, fill, rx, ry, top: cyTop }),       // opaque cap (fill + stroke), drawn over
