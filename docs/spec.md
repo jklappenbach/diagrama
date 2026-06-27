@@ -1,8 +1,8 @@
 # diagrama — specification (v0.7)
 
-A diagramming system for **class, sequence, state, system-design, and CI/CD** diagrams,
-authored as a **KDL** document that describes *meaning, not pixels*, auto-laid-out and
-drawn with **fabric.js**. One **renderer core** powers several **surfaces**: an
+A **diagramming system for software development** — software and systems architecture,
+production and delivery management — authored as a **KDL** document that describes
+*meaning, not pixels*, auto-laid-out and drawn with **fabric.js**. One **renderer core** powers several **surfaces**: an
 embeddable read-only view, **IDE preview plugins** (the Markdown editor+preview pattern,
 in VS Code and IntelliJ), and a **standalone browser editor**. Edits — typing the KDL
 *or* dragging a shape — are written back **format-preservingly** and **always saved**

@@ -1,7 +1,7 @@
 # diagrama
 
-A diagramming system for **class, sequence, state, system-design, and CI/CD** diagrams —
-authored as a **KDL** document, laid out automatically, and drawn on canvas with
+A **diagramming system for software development** — software and systems architecture,
+production and delivery management — authored as a **KDL** document, laid out automatically, and drawn on canvas with
 [fabric.js](http://fabricjs.com/). The document describes *meaning*, not pixels, so
 diagrams are diffable and hand/AI-authorable. One **renderer core** drives several
 **surfaces** — an embeddable read-only view, **Markdown-style preview plugins** for VS
