@@ -2,7 +2,7 @@
 // Browser-only (needs a DOM canvas). Dispatches by diagram type; system and gantt are
 // implemented, other types draw a "not yet" placeholder so the bundle stays whole.
 
-import { Canvas, Rect, Ellipse, Textbox, Line, Polygon, FabricText, Group as FabricGroup } from 'fabric';
+import { Canvas, Rect, Ellipse, Circle, Textbox, Line, Polygon, FabricText, Group as FabricGroup } from 'fabric';
 import { layout } from './layout.js';
 import { setPos, emit } from './kdl.js';
 
@@ -134,27 +134,92 @@ function drawGraph(canvas, model, lo, theme, opts) {
   }
 }
 
+// Resolve ends/line/glyph from kind presets + rel shorthand + explicit overrides (§5.6).
+function resolveEnds(el) {
+  let fromEnd = 'none', toEnd = 'open', dashed = false, glyph = el?.glyph;
+  switch (el?.kind) {
+    case 'dependency': dashed = true; toEnd = 'open'; break;
+    case 'dataflow': case 'sync': case 'flow': case 'onsuccess': toEnd = 'arrow'; break;
+    case 'async': dashed = true; toEnd = 'open'; glyph = glyph || 'clock'; break;
+    case 'publishes': toEnd = 'arrow'; glyph = glyph || 'bolt'; break;
+    case 'subscribes': toEnd = 'open'; break;
+    case 'onfailure': toEnd = 'arrow'; dashed = true; break;
+    case 'manual': toEnd = 'open'; dashed = true; glyph = glyph || 'manual'; break;
+    default: break;
+  }
+  if (el?.rel === 'owns') { fromEnd = 'filled-diamond'; toEnd = 'open'; }
+  else if (el?.rel === 'aggregates') { fromEnd = 'diamond'; toEnd = 'open'; }
+  else if (el?.rel === 'refs') { toEnd = 'open'; dashed = true; }
+  if (el?.line) dashed = el.line !== 'solid';
+  if (el?.fromEnd) fromEnd = el.fromEnd;
+  if (el?.toEnd) toEnd = el.toEnd;
+  return { fromEnd, toEnd, dashed, glyph };
+}
+
+function makeEnd(kind, color, s = 8) {
+  const tri = [{ x: 0, y: 0 }, { x: -s, y: -s * 0.55 }, { x: -s, y: s * 0.55 }];
+  const dia = [{ x: 0, y: 0 }, { x: -s, y: -s * 0.6 }, { x: -2 * s, y: 0 }, { x: -s, y: s * 0.6 }];
+  const base = { originX: 'center', originY: 'center', selectable: false, evented: false };
+  switch (kind) {
+    case 'arrow': return new Polygon(tri, { ...base, fill: color });
+    case 'open': return new Polygon(tri, { ...base, fill: 'transparent', stroke: color, strokeWidth: 1.4 });
+    case 'diamond': return new Polygon(dia, { ...base, fill: '#fff', stroke: color, strokeWidth: 1.4 });
+    case 'filled-diamond': return new Polygon(dia, { ...base, fill: color });
+    case 'dot': return new Circle({ ...base, radius: s * 0.5, fill: color });
+    case 'o-dot': return new Circle({ ...base, radius: s * 0.5, fill: '#fff', stroke: color, strokeWidth: 1.4 });
+    case 'cross': return new FabricText('✕', { ...base, fontSize: s * 1.6, fill: color });
+    default: return null;
+  }
+}
+
+const GLYPH_CHAR = { lock: '🔒', bolt: '⚡', clock: '⏱', manual: '✋' };
+function glyphText(g) {
+  if (!g) return null;
+  if (g.startsWith('num:')) return g.slice(4);
+  return GLYPH_CHAR[g] || g[0].toUpperCase();
+}
+
+function placeEnd(canvas, obj, x, y, angleDeg) {
+  if (!obj) return;
+  obj.set({ left: x, top: y, angle: angleDeg });
+  canvas.add(obj);
+}
+
 function drawEdge(canvas, e, lo, theme) {
   const a = lo.nodes[e.from], b = lo.nodes[e.to];
   if (!a || !b) return;
   const p = borderPoint(a, b), q = borderPoint(b, a);
-  const dashed = e.el?.kind === 'dependency' || e.el?.line === 'dashed' || e.el?.rel === 'refs';
+  const { fromEnd, toEnd, dashed, glyph } = resolveEnds(e.el);
   canvas.add(new Line([p.x, p.y, q.x, q.y], {
     stroke: theme.stroke, strokeWidth: 1.3, strokeDashArray: dashed ? [5, 4] : [],
     selectable: false, evented: false,
   }));
-  // arrowhead at target
-  const ang = Math.atan2(q.y - p.y, q.x - p.x);
-  const s = 8;
-  canvas.add(new Polygon(
-    [{ x: 0, y: 0 }, { x: -s, y: -s * 0.5 }, { x: -s, y: s * 0.5 }],
-    { left: q.x, top: q.y, angle: (ang * 180) / Math.PI, originX: 'center', originY: 'center',
-      fill: theme.stroke, selectable: false, evented: false }));
-  if (e.el?.label) {
-    canvas.add(new FabricText(e.el.label, { left: (p.x + q.x) / 2, top: (p.y + q.y) / 2 - 8,
-      fontSize: 10, fill: theme.muted, backgroundColor: theme.bg, originX: 'center',
-      selectable: false, evented: false }));
+  const deg = (Math.atan2(q.y - p.y, q.x - p.x) * 180) / Math.PI;
+  placeEnd(canvas, makeEnd(toEnd, theme.stroke), q.x, q.y, deg);
+  placeEnd(canvas, makeEnd(fromEnd, theme.stroke), p.x, p.y, deg + 180);
+
+  const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+  if (e.el?.label) canvas.add(new FabricText(e.el.label, { left: mx, top: my - 9,
+    fontSize: 10, fill: theme.muted, backgroundColor: theme.bg, originX: 'center',
+    selectable: false, evented: false }));
+  const gt = glyphText(glyph);
+  if (gt) {
+    canvas.add(new Circle({ left: mx, top: my, radius: 8, fill: theme.bg, stroke: theme.muted,
+      strokeWidth: 1, originX: 'center', originY: 'center', selectable: false, evented: false }));
+    canvas.add(new FabricText(gt, { left: mx, top: my, fontSize: 9, fill: theme.text,
+      originX: 'center', originY: 'center', selectable: false, evented: false }));
   }
+  // cardinality near the ends
+  if (e.el?.fromCard) canvas.add(cardLabel(e.el.fromCard, p, q, theme));
+  if (e.el?.toCard) canvas.add(cardLabel(e.el.toCard, q, p, theme));
+}
+
+function cardLabel(text, at, toward, theme) {
+  const dx = toward.x - at.x, dy = toward.y - at.y, len = Math.hypot(dx, dy) || 1;
+  return new FabricText(String(text), {
+    left: at.x + (dx / len) * 16, top: at.y + (dy / len) * 16 - 6,
+    fontSize: 9, fill: theme.muted, originX: 'center', selectable: false, evented: false,
+  });
 }
 
 function borderPoint(from, to) {
