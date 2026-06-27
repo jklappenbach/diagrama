@@ -406,12 +406,13 @@ topologically ordered, scheduled earliest-start, and the **critical path** and t
 
 | element | form |
 |---|---|
-| **calendar** | `calendar start="YYYY-MM-DD" unit="day" workweek="mon-fri"` — calendar mode only |
+| **calendar** | `calendar start="YYYY-MM-DD" unit="hour" hours-per-day=8 workweek="mon-fri"` — calendar mode |
 | **lane** | `lane "id" label="…"` — a swimlane (parallel track); **auto-created** if a task names an undeclared lane |
 | **start** | `start "start" label="Start"` — the do-nothing **star** root; **implicit if omitted**; exactly one per chart |
 | **task** | `task "id" title="…" cost=N lane="…" start="YYYY-MM-DD"? ticket="…" ticket-url="…"` + `{ desc "…"; deps "id" "id"… }` |
 
-- **`cost`** — duration in **days, 0.5 resolution** (`cost=2.5`).
+- **`cost`** — duration in **hours** (the calendar `unit`; `hours-per-day` sets the
+  day rollover for the schedule). Set `unit="day"` for day-granularity plans.
 - **`start`** (on a task) — the *estimated* start; **optional**. If omitted it is
   **derived** from dependencies (the max end of its deps). The **end is always
   calculated** (start + cost over working days) — never authored.
@@ -424,21 +425,21 @@ topologically ordered, scheduled earliest-start, and the **critical path** and t
 
 ```kdl
 diagram type="gantt" title="Release plan" mode="calendar" {
-    calendar start="2026-07-01" unit="day" workweek="mon-fri"
+    calendar start="2026-07-01" unit="hour" hours-per-day=8 workweek="mon-fri"
     lane "be" label="Backend"
     lane "fe" label="Frontend"
 
     start "start" label="Start"                          // star root (implicit if omitted)
 
-    task "api" title="Build API" cost=5 lane="be" ticket="JIRA-1234" \
+    task "api" title="Build API" cost=40 lane="be" ticket="JIRA-1234" \
         ticket-url="https://jira/browse/JIRA-1234" {
         desc "Order + payment REST endpoints"
         deps "start"
     }
-    task "ui" title="Build UI" cost=4 lane="fe" ticket="JIRA-1240" {
+    task "ui" title="Build UI" cost=32 lane="fe" ticket="JIRA-1240" {
         deps "start"
     }
-    task "integ" title="Integration" cost=2.5 {
+    task "integ" title="Integration" cost=20 {
         deps "api" "ui"                                  // waits on both; end calculated
     }
 }

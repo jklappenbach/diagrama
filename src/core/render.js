@@ -2,7 +2,7 @@
 // Browser-only (needs a DOM canvas). Dispatches by diagram type; system and gantt are
 // implemented, other types draw a "not yet" placeholder so the bundle stays whole.
 
-import { Canvas, Rect, Ellipse, Circle, Textbox, Line, Polygon, FabricText, Group as FabricGroup } from 'fabric';
+import { Canvas, Rect, Ellipse, Circle, Textbox, Line, Polygon, Path, FabricText, Group as FabricGroup } from 'fabric';
 import { layout, memberLine } from './layout.js';
 import { setPos, emit } from './kdl.js';
 
@@ -25,19 +25,24 @@ const familyOf = (base) => FAMILY[base] || 'compute';
 function shapeParts(family, w, h, fill, stroke) {
   const common = { fill, stroke, strokeWidth: 1.4, originX: 'center', originY: 'center' };
   if (family === 'storage') {
-    const ry = Math.min(9, h * 0.16);
+    // cylinder: a trunk with a curved (arc) bottom + a full top ellipse for the rim.
+    const rx = w / 2, ry = Math.min(10, h * 0.18);
+    const cyTop = -h / 2 + ry, cyBot = h / 2 - ry;
+    const body = `M ${-rx} ${cyTop} L ${rx} ${cyTop} L ${rx} ${cyBot} A ${rx} ${ry} 0 0 0 ${-rx} ${cyBot} Z`;
     return [
-      new Rect({ ...common, width: w, height: h - ry, top: ry / 2 }),
-      new Ellipse({ ...common, rx: w / 2, ry, top: (h / 2) - ry, fill: 'transparent' }),
-      new Ellipse({ ...common, rx: w / 2, ry, top: -(h / 2) + ry }),
+      new Path(body, { ...common, left: 0, top: ry / 2 }), // top:ry/2 keeps the bbox-centered path aligned
+      new Ellipse({ ...common, rx, ry, top: cyTop }),       // top rim (fill + stroke)
     ];
   }
   if (family === 'network') return [new Rect({ ...common, width: w, height: h, rx: h / 2, ry: h / 2 })];
-  if (family === 'messaging') return [
-    new Rect({ ...common, width: w, height: h, rx: 11, ry: 11 }),
-    new Line([-w / 2 + 6, -h / 2, -w / 2 + 6, h / 2], { stroke, strokeWidth: 1, originX: 'center', originY: 'center' }),
-    new Line([w / 2 - 6, -h / 2, w / 2 - 6, h / 2], { stroke, strokeWidth: 1, originX: 'center', originY: 'center' }),
-  ];
+  if (family === 'messaging') {
+    // open channel: a stadium with a small notch at each end (no inner bars).
+    const rx = w / 2, r = h / 2;
+    return [
+      new Rect({ ...common, width: w, height: h, rx: r, ry: r }),
+      new Ellipse({ ...common, rx: r * 0.5, ry: r, left: rx - r * 0.5, fill: 'transparent' }),
+    ];
+  }
   return [new Rect({ ...common, width: w, height: h, rx: 7, ry: 7 })];
 }
 
@@ -307,19 +312,22 @@ function drawGantt(canvas, model, lo, theme) {
   // header line
   canvas.add(new Line([lo.gutter, 0, lo.gutter, lo.height], { stroke: '#e2e5ee', selectable: false, evented: false }));
 
-  // day/date header (calendar) or order header (timeless)
+  // time header: a tick per unit; a stronger gridline + date label at each day boundary.
   if (!lo.timeless) {
-    for (let d = 0; d <= lo.total; d++) {
-      const x = lo.gutter + d * lo.pxPerDay;
-      canvas.add(new Line([x, lo.headerH, x, lo.height], { stroke: '#eef0f6', selectable: false, evented: false }));
-      const label = lo.dates ? lo.dates(d).slice(5) : String(d);
-      if (d % 1 === 0) canvas.add(new FabricText(label, { left: x + 2, top: 6, fontSize: 8,
-        fill: theme.muted, selectable: false, evented: false }));
+    const dayStep = lo.unit === 'hour' ? lo.hoursPerDay : 1;
+    for (let u = 0; u <= lo.total + 1e-6; u++) {
+      const x = lo.gutter + u * lo.pxPerUnit;
+      const dayBoundary = u % dayStep === 0;
+      canvas.add(new Line([x, lo.headerH, x, lo.height],
+        { stroke: dayBoundary ? '#e2e5ee' : '#f2f4f9', selectable: false, evented: false }));
+      if (dayBoundary) canvas.add(new FabricText(lo.dates ? lo.dates(u).slice(5) : String(u),
+        { left: x + 2, top: 6, fontSize: 8, fill: theme.muted, selectable: false, evented: false }));
     }
   }
 
-  // start star
-  canvas.add(star(lo.gutter - 14, lo.headerH + 12, 9, theme.accent));
+  // start star (the do-nothing root every dependency chain bottoms out at)
+  const starX = lo.gutter - 14, starY = lo.headerH + 12;
+  canvas.add(star(starX, starY, 9, theme.accent));
 
   for (const bar of lo.bars) {
     canvas.add(new Rect({ left: bar.x, top: bar.y, width: bar.width, height: bar.height,
@@ -330,8 +338,32 @@ function drawGantt(canvas, model, lo, theme) {
     canvas.add(new FabricText(lbl, { left: bar.x + 6, top: bar.y + bar.height / 2, originY: 'center',
       fontSize: 10, fill: theme.text, selectable: false, evented: false }));
   }
-  canvas.add(new FabricText(`total: ${lo.total} working days`, { left: lo.gutter, top: lo.height - 12,
+  // dependency connectors (finish -> start), skipping the implicit start root.
+  const startId = model.start ? model.start.id : 'start';
+  const byId = {};
+  lo.bars.forEach((b) => { byId[b.task.id] = b; });
+  // a task points at each dependency; a task that only depends on Start points at the star.
+  const startTarget = { x: starX, width: 0, y: starY - 9, height: 18 };
+  for (const bar of lo.bars) {
+    for (const dep of bar.task.deps || []) {
+      const prereq = dep === startId ? startTarget : byId[dep];
+      if (prereq) drawDepArrow(canvas, bar, prereq, theme); // task -> what it depends on
+    }
+  }
+
+  canvas.add(new FabricText(`total: ${lo.total} working ${(lo.unit || 'day')}s`, { left: lo.gutter, top: lo.height - 12,
     fontSize: 10, fill: theme.muted, selectable: false, evented: false }));
+}
+
+// Arrow points FROM the task TO its dependency (the prerequisite, earlier/left).
+function drawDepArrow(canvas, task, dep, theme) {
+  const sx = task.x, sy = task.y + task.height / 2;          // task left edge (tail)
+  const tx = dep.x + dep.width, ty = dep.y + dep.height / 2; // dependency right edge (head)
+  const mx = sx - 8;
+  for (const p of [[sx, sy, mx, sy], [mx, sy, mx, ty], [mx, ty, tx, ty]]) {
+    canvas.add(new Line(p, { stroke: theme.muted, strokeWidth: 1, selectable: false, evented: false }));
+  }
+  placeEnd(canvas, makeEnd('arrow', theme.muted, 6), tx, ty, 180); // head points left, into the dependency
 }
 
 // ---------- sequence ----------

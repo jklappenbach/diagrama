@@ -80,7 +80,10 @@ export function layoutGraph(model) {
 
 /** gantt layout: lane bands + task bars positioned by the scheduler. */
 export function layoutGantt(model, opts = {}) {
-  const pxPerDay = opts.pxPerDay || 36;
+  const cal = model.calendar || {};
+  const unit = cal.unit || 'hour';
+  const hoursPerDay = Number(cal['hours-per-day']) || 8;
+  const pxPerUnit = opts.pxPerUnit || (unit === 'hour' ? 11 : 36);
   const rowH = 34, laneGap = 6, headerH = 28, gutter = 150;
   const s = schedule(model);
   if (s.cycle) return { kind: 'gantt', cycle: s.cycle };
@@ -92,11 +95,11 @@ export function layoutGantt(model, opts = {}) {
 
   const bars = [];
   // timeless mode places bars by dependency order column instead of time.
-  model.tasks.forEach((t, i) => {
+  model.tasks.forEach((t) => {
     const sc = s.tasks.get(t.id);
     const li = laneIndex[t.lane] ?? 0;
-    const x0 = timeless ? gutter + (s.order.indexOf(t.id) - 1) * 90 : gutter + sc.es * pxPerDay;
-    const w = timeless ? 80 : Math.max(8, sc.cost * pxPerDay);
+    const x0 = timeless ? gutter + (s.order.indexOf(t.id) - 1) * 90 : gutter + sc.es * pxPerUnit;
+    const w = timeless ? 80 : Math.max(8, sc.cost * pxPerUnit);
     bars.push({
       task: t, es: sc.es, ef: sc.ef, critical: sc.critical,
       x: x0, y: headerH + li * (rowH + laneGap) + 4,
@@ -107,8 +110,8 @@ export function layoutGantt(model, opts = {}) {
 
   return {
     kind: 'gantt', timeless, lanes, laneIndex, bars, total: s.total,
-    rowH, laneGap, headerH, gutter, pxPerDay,
-    width: gutter + (timeless ? model.tasks.length * 90 + 120 : s.total * pxPerDay + 40),
+    rowH, laneGap, headerH, gutter, pxPerUnit, unit, hoursPerDay,
+    width: gutter + (timeless ? model.tasks.length * 90 + 120 : s.total * pxPerUnit + 40),
     height: headerH + lanes.length * (rowH + laneGap) + 16,
     dates: s.dates,
   };

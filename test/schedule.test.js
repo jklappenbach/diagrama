@@ -49,6 +49,26 @@ describe('gantt scheduler', () => {
   });
 });
 
+describe('gantt hours mode', () => {
+  const m = buildModel(`diagram type="gantt" {
+    calendar start="2026-07-01" unit="hour" hours-per-day=8 workweek="mon-fri"
+    task "a" cost=8 { deps "start" }
+    task "b" cost=4 { deps "a" }
+  }`);
+  const s = schedule(m);
+
+  it('schedules durations in hours', () => {
+    expect(s.tasks.get('a').ef).toBe(8);
+    expect(s.tasks.get('b').ef).toBe(12);
+    expect(s.total).toBe(12);
+  });
+
+  it('rolls hours over to the next working day at hours-per-day', () => {
+    expect(s.dates(0)).toBe('2026-07-01'); // Wed
+    expect(s.dates(8)).toBe('2026-07-02'); // one 8h day later -> Thu
+  });
+});
+
 describe('validation', () => {
   it('flags a task with no dependencies', () => {
     const m = buildModel(`diagram type="gantt" {

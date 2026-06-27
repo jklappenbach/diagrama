@@ -51,7 +51,7 @@ export function schedule(model) {
   }
 
   const result = { tasks, total, order: order.list };
-  if (model.calendar?.start) result.dates = workingDayMapper(model.calendar);
+  if (model.calendar?.start) result.dates = workTimeMapper(model.calendar);
   return result;
 }
 
@@ -78,15 +78,23 @@ function topoSort(ids, deps) {
   return { list };
 }
 
-/** Map a working-day offset to an ISO date, skipping weekends (workweek mon-fri). */
-function workingDayMapper(cal) {
+/**
+ * Map a work-time offset to its ISO date, skipping weekends. Unit-aware: with
+ * `unit="hour"` (default) the offset is hours and `hours-per-day` (default 8) sets the
+ * day rollover; with `unit="day"` the offset is days. Returns the working day the
+ * offset falls in.
+ */
+function workTimeMapper(cal) {
   const skipWeekends = (cal.workweek ?? 'mon-fri') === 'mon-fri';
+  const hpd = Number(cal['hours-per-day']) || 8;
+  const unit = cal.unit || 'hour';
   const base = new Date(cal.start + 'T00:00:00Z');
   return (offset) => {
-    const whole = Math.floor(offset);
+    const hours = unit === 'day' ? offset * hpd : offset;
+    const fullDays = Math.floor(hours / hpd + 1e-9);
     const d = new Date(base);
     let added = 0;
-    while (added < whole) {
+    while (added < fullDays) {
       d.setUTCDate(d.getUTCDate() + 1);
       if (!skipWeekends || (d.getUTCDay() !== 0 && d.getUTCDay() !== 6)) added++;
     }
