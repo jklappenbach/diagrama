@@ -37,9 +37,12 @@ function shapeParts(family, w, h, fill, stroke) {
   }
   if (family === 'network') return [new Rect({ ...common, width: w, height: h, rx: h / 2, ry: h / 2 })];
   if (family === 'messaging') {
-    // single moderately-rounded shape (no overlay); topic vs queue differ by icon.
-    const r = Math.min(h * 0.45, 16);
-    return [new Rect({ ...common, width: w, height: h, rx: r, ry: r })];
+    // parallelogram (reads as flow/stream); topic vs queue differ by icon. No overlay.
+    const sk = Math.min(h * 0.4, 14);
+    return [new Polygon([
+      { x: -w / 2 + sk, y: -h / 2 }, { x: w / 2, y: -h / 2 },
+      { x: w / 2 - sk, y: h / 2 }, { x: -w / 2, y: h / 2 },
+    ], common)];
   }
   return [new Rect({ ...common, width: w, height: h, rx: 7, ry: 7 })];
 }
