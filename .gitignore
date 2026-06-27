@@ -5,6 +5,11 @@ node_modules/
 dist/
 *.min.js.map
 
+# IntelliJ plugin (Gradle) build artifacts + copied core bundle
+packages/intellij/.gradle/
+packages/intellij/build/
+packages/intellij/src/main/resources/web/diagrama.min.js
+
 # Editor / OS
 .DS_Store
 .idea/

@@ -139,14 +139,16 @@ One slice per type; each reuses primitives + layout + text.
 ---
 
 ## Phase 4 — IntelliJ plugin (`packages/intellij`) — spec §8.3  ── first surface
-- [ ] `FileEditorProvider` for `*.diagrama.kdl` → [ text | JCEF preview ] split (the
-      built-in Markdown plugin's shape).
-- [ ] JCEF (Chromium) runs the core; the text half gets KDL grammar/hints from the
-      official `intellij-kdl` plugin (no editor built).
-- [ ] Refresh the preview on document change; map JCEF resource loading to the core bundle.
-- [ ] Upgrade: edit-in-place — JCEF posts drags back to the PSI/document (Phase 2 write-back).
-- **Accept:** open a `.diagrama.kdl`, get the split editor with live preview; (upgrade)
-  a drag in the preview persists a minimal diff to the document.
+- [x] `FileEditorProvider` → `TextEditorWithPreview` [ text | JCEF preview ] split.
+- [x] JCEF runs the core bundle (inlined into the page); text half uses `intellij-kdl`.
+- [x] Refresh preview on `documentChanged` (`window.diagrama.setContent`).
+- [x] Edit-in-place: drag → `onPersist` → `JBCefJSQuery` → `WriteCommandAction`
+      `Document.setText` (minimal diff via format-preserving write-back).
+- [x] `build-intellij-bundle.sh` copies the core bundle into plugin resources.
+- [ ] **Verify in a running sandbox IDE** (`./gradlew runIde`) — needs the IntelliJ SDK
+      download; Kotlin not yet compiled here. *(scaffold complete, runtime-unverified)*
+- **Accept:** open a `.diagrama.kdl`, get the split editor with live preview; a drag in
+  the preview persists a minimal diff to the document.
 
 > Packaging note: ship as a JetBrains plugin (works across IDEA / CLion / PyCharm —
 > matches the C++/Python/JVM mix here). JCEF ships with the JetBrains runtime.
