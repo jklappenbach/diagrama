@@ -1,0 +1,32 @@
+diagram type="gantt" title="Release plan — v1 launch" mode="calendar" {
+    calendar start="2026-07-01" unit="day" workweek="mon-fri"
+
+    lane "be"  label="Backend"
+    lane "fe"  label="Frontend"
+    lane "ops" label="Platform"
+
+    start "start" label="Start"                          // star root (implicit if omitted)
+
+    task "spec" title="Spec & API design" cost=2 lane="be" ticket="JIRA-1200" {
+        desc "Endpoints, schema, error model"
+        deps "start"
+    }
+    task "api" title="Build API" cost=5 lane="be" ticket="JIRA-1234" ticket-url="https://jira/browse/JIRA-1234" {
+        deps "spec"
+    }
+    task "ui" title="Build UI" cost=4.5 lane="fe" ticket="JIRA-1240" {
+        deps "spec"
+    }
+    task "infra" title="Provision infra" cost=1.5 lane="ops" ticket="JIRA-1250" {
+        deps "start"
+    }
+    task "integ" title="Integration" cost=2.5 lane="be" ticket="JIRA-1260" {
+        deps "api" "ui" "infra"                          // waits on all three; end calculated
+    }
+    task "uat" title="UAT + fixes" cost=3 lane="fe" ticket="JIRA-1270" {
+        deps "integ"
+    }
+    task "ga" title="GA cutover" cost=0.5 lane="ops" ticket="JIRA-1299" {
+        deps "uat"
+    }
+}

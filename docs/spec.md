@@ -1,4 +1,4 @@
-# diagrama — specification (v0.7)
+# diagrama — specification (v0.8)
 
 A **diagramming system for software development** — software and systems architecture,
 production and delivery management — authored as a **KDL** document that describes
@@ -15,8 +15,9 @@ in VS Code and IntelliJ), and a **standalone browser editor**. Edits — typing 
 
 1. **Text-authorable, semantic — not pixels.** The document describes a *class*, a
    *message*, a *dependency* — never coordinates. The app lays it out and renders it.
-2. **One format, five diagram types** — `class`, `sequence`, `state`, `system`,
-   `pipeline` (CI/CD) — over a shared envelope (§4) with per-type vocabularies (§5).
+2. **One format, multiple diagram types** — `class`, `sequence`, `state`, `system`,
+   `pipeline` (CI/CD), `gantt` (scheduling) — over a shared envelope (§4) with per-type
+   vocabularies (§5).
 3. **One renderer, several surfaces.** A single **renderer core** (parse → layout →
    draw) is the shared artifact behind every surface (§3, §8). Surfaces differ only in
    *who provides the text editor* and *whether editing writes back*.
@@ -390,11 +391,67 @@ diagram type="pipeline" title="Build → deploy" {
 }
 ```
 
+### 5.9 `gantt` (scheduling)
+
+Planned execution derived from a **dependency graph**: tasks carry a time cost, are
+topologically ordered, scheduled earliest-start, and the **critical path** and total
+**estimated duration** are computed (not authored). Two render modes:
+
+- **`mode="timeless"`** — dependency / ordering view: no time axis; tasks placed by
+  dependency order with lanes stacked. For reasoning about order and dependencies.
+- **`mode="calendar"`** — bars on a horizontal **calendar axis**, positioned by the
+  computed start/end, honouring the `calendar` working week.
+
+**Elements:**
+
+| element | form |
+|---|---|
+| **calendar** | `calendar start="YYYY-MM-DD" unit="day" workweek="mon-fri"` — calendar mode only |
+| **lane** | `lane "id" label="…"` — a swimlane (parallel track); **auto-created** if a task names an undeclared lane |
+| **start** | `start "start" label="Start"` — the do-nothing **star** root; **implicit if omitted**; exactly one per chart |
+| **task** | `task "id" title="…" cost=N lane="…" start="YYYY-MM-DD"? ticket="…" ticket-url="…"` + `{ desc "…"; deps "id" "id"… }` |
+
+- **`cost`** — duration in **days, 0.5 resolution** (`cost=2.5`).
+- **`start`** (on a task) — the *estimated* start; **optional**. If omitted it is
+  **derived** from dependencies (the max end of its deps). The **end is always
+  calculated** (start + cost over working days) — never authored.
+- **`deps`** — the dependency set (**≥ 1 id required**). Every task must depend on at
+  least one other; the implicit `start` node gives the first task its origin. The
+  graph must be acyclic; tasks are arranged in dependency order automatically.
+- **`ticket` / `ticket-url`** — ticket id and/or a link to it.
+- The **critical path** is highlighted; the chart reports total estimated duration
+  (the critical-path length).
+
+```kdl
+diagram type="gantt" title="Release plan" mode="calendar" {
+    calendar start="2026-07-01" unit="day" workweek="mon-fri"
+    lane "be" label="Backend"
+    lane "fe" label="Frontend"
+
+    start "start" label="Start"                          // star root (implicit if omitted)
+
+    task "api" title="Build API" cost=5 lane="be" ticket="JIRA-1234" \
+        ticket-url="https://jira/browse/JIRA-1234" {
+        desc "Order + payment REST endpoints"
+        deps "start"
+    }
+    task "ui" title="Build UI" cost=4 lane="fe" ticket="JIRA-1240" {
+        deps "start"
+    }
+    task "integ" title="Integration" cost=2.5 {
+        deps "api" "ui"                                  // waits on both; end calculated
+    }
+}
+```
+
 ## 6. Layout
 
 - **Graph types** → dagre by default (`layout.direction` controls flow); ELK.js optional.
 - **`sequence`** → temporal layout: participants across the top, messages top-to-bottom
   in document order, activation bars from sync call→return, fragments as labeled frames.
+- **`gantt`** → a scheduler over the dependency graph: topological order + earliest-start
+  from `cost`/`deps`; critical path highlighted. `mode=timeless` drops the time axis;
+  `mode=calendar` positions bars on the calendar.
 - **Overrides** — a node's `pos` child pins it; an edge's `waypoints` route it; a
   **"re-layout"** action clears `pos` to return to auto-layout.
 
@@ -402,8 +459,20 @@ diagram type="pipeline" title="Build → deploy" {
 
 Each type maps to fabric primitives: `class` → 3-compartment boxes; `sequence` →
 lifelines + activations + message arrows + fragment frames; `state` → rounded states +
-transitions; `system` → typed shapes + boundary containers. Shared primitives keep the
-renderers small.
+transitions; `system` → typed shapes + boundary containers; `pipeline` → step shapes +
+routed edges; `gantt` → lane bands + task bars (or order columns) + a calendar header.
+Shared primitives keep the renderers small.
+
+### 7.1 Canvas & navigation
+
+The viewport is independent of diagram size and applies to **every** type:
+
+- **Scrollbars + pan** — when the rendered canvas exceeds the window, horizontal and
+  vertical scrollbars appear and the diagram pans (background-drag / scroll-wheel).
+- **Zoom** — mouse wheel and **Ctrl + ↑ / ↓** (and `+` / `−`), zooming about the
+  cursor; plus **fit-to-window** and **100%** reset.
+- In `gantt` `mode=calendar`, the time axis scrolls horizontally with a **sticky lane
+  gutter** and **sticky date header**.
 
 ## 8. Surfaces
 
