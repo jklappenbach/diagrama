@@ -1,0 +1,26 @@
+diagram type="system" title="Order service — stores, messaging, ownership" theme="light" {
+    layout engine="dagre" direction="LR" spacing=60
+
+    // Reusable node types: base shape + icon + style, used by name as `kind`.
+    nodetype "pg"    base="sql"   icon="postgres" { style fill="#e0eaff" stroke="#356" }
+    nodetype "redis" base="cache" icon="redis"    { style fill="#ffe0e0" stroke="#a33" }
+    nodetype "s3"    base="blob"  icon="s3"        { style fill="#eafbe7" stroke="#363" }
+
+    group "edge" label="Edge"    kind="zone"    { member "api" }
+    group "core" label="Core"    kind="cluster" { member "orders"; member "sessions"; member "media" }
+    group "bus"  label="Pipeline" kind="workflow" { member "events"; member "jobs" }
+
+    node "api"      label="API gateway"   kind="gateway"
+    node "orders"   label="Orders DB"     kind="pg"
+    node "sessions" label="Session cache" kind="redis"
+    node "media"    label="Media store"   kind="s3"
+    node "events"   label="order.events"  kind="topic"
+    node "jobs"     label="fulfillment"   kind="queue"
+
+    // Ownership + cardinality + presets + an inline glyph.
+    edge "api"    "orders"   kind="dependency" glyph="lock" to-card="N:M"
+    edge "orders" "sessions" rel="owns"  from-card="1" to-card="N"   // 1:N composition
+    edge "orders" "media"    rel="refs"  line="dashed"               // reference only
+    edge "orders" "events"   kind="publishes"
+    edge "events" "jobs"     kind="async"   glyph="clock"
+}

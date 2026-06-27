@@ -1,4 +1,4 @@
-# diagrama — specification (v0.3)
+# diagrama — specification (v0.4)
 
 A diagramming system for **UML class, sequence, state, and system-design** diagrams,
 authored as a **KDL** document that describes *meaning, not pixels*, auto-laid-out and
@@ -98,8 +98,9 @@ diagram type="system" title="Cajeta layers" theme="light" {
 |---|---|
 | **diagram** | `diagram type=… title=… theme=…` — the root; `type` required |
 | **layout** | `layout engine=… direction=… spacing=…` — optional |
-| **node** | `node "id" label=… kind=… group=…` + optional `{ style …; pos x= y=; <type-specific> }` |
-| **edge** | `edge "from" "to" kind=… label=… dir=…` + optional `{ waypoints { pt x= y=; … } }` |
+| **nodetype** | `nodetype "name" base=… icon=…` + optional `{ style … }` — a reusable `kind` (§5.5) |
+| **node** | `node "id" label=… kind=… group=…` + optional `{ style …; icon …; pos x= y=; <type-specific> }` |
+| **edge** | `edge "from" "to" kind=… label=… dir=…` + decoration (`rel= line= from-end= to-end= from-card= to-card= glyph=`, §5.6) + optional `{ waypoints { pt x= y=; … } }` |
 | **group** | `group "id" label=… kind=…` + `{ member "id"; … }` (groups nest) |
 | **note** | `note "text" attach="id"` + optional `{ pos x= y= }` |
 
@@ -114,7 +115,8 @@ The envelope is shared; each `type` defines its `kind` values and any nested ele
 - **node.kind**: `class` | `interface` | `enum` | `abstract`; optional `stereotype=`.
 - **members** as children: `attr "name" type=… vis="+|-|#|~"`, `method "name" sig=… vis=…`.
 - **edge.kind**: `inheritance` | `implementation` | `association` | `aggregation` |
-  `composition` | `dependency`; optional `mult-from=` / `mult-to=`.
+  `composition` | `dependency`. Ends follow from the kind; cardinality via
+  `from-card=` / `to-card=` and other decoration are shared with `system` (§5.6).
 
 ### 5.2 `sequence`
 Document order *is* time; fragments **contain** their messages:
@@ -127,9 +129,96 @@ Document order *is* time; fragments **contain** their messages:
 - **edge.kind**: `transition`, with `trigger=` / `guard=` / `action=`.
 
 ### 5.4 `system`
-- **node.kind**: `service` | `datastore` | `queue` | `actor` | `external` | `component`.
-- **groups** are boundaries / layers / zones (nested allowed).
-- **edge.kind**: `dependency` | `dataflow` | `sync` | `async` | `publishes` | `subscribes`.
+
+A node's **shape** comes from a *family*; its **icon** picks the specific tech/role
+(§5.5). Topic and Queue share one shape, differing only by icon.
+
+| family | base shape | `kind` values (each a distinct icon) |
+|---|---|---|
+| **compute** | rectangle | `service` · `component` · `actor` · `external` · `gateway` · `function` |
+| **storage** | cylinder | `sql` · `kv` · `blob` · `cache` (start); extensible: `timeseries` · `graph` · `search` |
+| **messaging** | channel | `queue` · `topic` (same shape; FIFO-stack vs. fan-out icon) |
+
+`cache` is a normal cylinder with a **bolt icon** (in-memory cue) — no special shape.
+`datastore` remains a legacy alias for a generic (un-iconed) cylinder.
+
+**Groups** carry a `kind` that sets a corner icon *and* a border line style:
+
+| `group.kind` | icon | border |
+|---|---|---|
+| `boundary` (generic) | none | thin solid |
+| `zone` | region | solid |
+| `process` | gear | dashed |
+| `cluster` | stacked nodes | dotted |
+| `workflow` (distributed) | branch/flow | dash-dot |
+
+**Edges** — `kind` sets a preset (line + ends + glyph), all overridable via §5.6:
+
+| `edge.kind` | line | to-end | glyph |
+|---|---|---|---|
+| `dependency` | dashed | open | — |
+| `dataflow` | solid | arrow | — |
+| `sync` | solid | arrow | — |
+| `async` | dashed | open | clock |
+| `publishes` | solid | arrow | bolt |
+| `subscribes` | solid | open | — |
+
+### 5.5 Icons & reusable node types
+
+An **icon** is an SVG drawn on a node, defaulting to a **top-left corner badge**
+(`pos="tl"`) so it never lands on an edge attach point (the perimeter midpoints),
+and scaled to the shape (`scale=0.35` = 35% of the short side).
+
+```kdl
+node "scorer" label="Scorer" kind="service" {
+    icon "ml"                                       // built-in registry name
+    // icon src="./icons/ml.svg" pos="tr" scale=0.4 // custom SVG + overrides
+}
+```
+
+- **Anchor** (`pos=`): `tl` (default) · `tr` · `bl` · `br` · `center` (watermark).
+- **Source**: a built-in registry name, or `src=` (file / URL / inline SVG).
+- **Registry**: vendor-neutral generics (`sql kv blob cache queue topic` + the
+  compute set) **and a bundled vendor pack** (`redis postgres mysql dynamo s3 gcs
+  kafka sqs`, extensible). Generics are the default; vendors are opt-in by name.
+
+**Reusable node type** — bundle base shape + icon + style under a name, then use it
+as a `kind`:
+
+```kdl
+nodetype "redis" base="cache" icon="redis" { style fill="#ffe0e0" stroke="#a00" }
+nodetype "pg"    base="sql"   icon="postgres"
+
+node "sessions" label="Session cache" kind="redis"
+node "orders"   label="Orders DB"     kind="pg"
+```
+
+Built-in kinds are just predefined nodetypes, so vendor/cloud icon packs drop in.
+
+### 5.6 Edge decoration (shared by `class` & `system`)
+
+Ends, cardinality and ownership render the same way for class relationships and
+system edges. `kind` presets them; the props below override per edge.
+
+- **Ends** (`from-end` / `to-end`): `none · arrow` (filled) `· open` (V) `· dot ·
+  o-dot · diamond · filled-diamond · cross`.
+- **Line** (`line=`): `solid · dashed · dotted · dashdot`.
+- **Cardinality / multiplicity** (`from-card` / `to-card`): `1 · N · * · 0..1 ·
+  1..*` → renders `1:N`, `N:M` at the ends.
+- **Inline glyph** (`glyph=`): a mid-line badge — `lock` · `bolt` · `clock` ·
+  `num:<n>`.
+- **Ownership shorthand** (`rel=`): `owns` (filled diamond at owner end) ·
+  `aggregates` (hollow diamond) · `refs` (open arrow, no diamond).
+
+```kdl
+edge "orders" "sessions" rel="owns" from-card="1" to-card="N"   // 1:N composition
+edge "scorer" "orders"   rel="refs" line="dashed"
+edge "api"    "orders"   kind="dependency" glyph="lock" to-card="N:M"
+```
+
+The `class` relationship kinds (§5.1) map onto these ends automatically
+(`composition`→filled diamond, `aggregation`→hollow diamond, `inheritance`→hollow
+triangle…); `rel=` is the system-side spelling of the same machinery.
 
 ## 6. Layout
 
