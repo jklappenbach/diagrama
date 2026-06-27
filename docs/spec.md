@@ -1,4 +1,4 @@
-# diagrama — specification (v0.4)
+# diagrama — specification (v0.5)
 
 A diagramming system for **UML class, sequence, state, and system-design** diagrams,
 authored as a **KDL** document that describes *meaning, not pixels*, auto-laid-out and
@@ -98,6 +98,8 @@ diagram type="system" title="Cajeta layers" theme="light" {
 |---|---|
 | **diagram** | `diagram type=… title=… theme=…` — the root; `type` required |
 | **layout** | `layout engine=… direction=… spacing=…` — optional |
+| **fonts** | `fonts { key "Family" src=… weight=… ; … }` — keyed font map (§5.7) |
+| **text** | `text font="key" size=… color=… align=… wrap=… maxlines=…` — doc default, or `text "slot" "content"?` per block on a node (§5.7) |
 | **nodetype** | `nodetype "name" base=… icon=…` + optional `{ style … }` — a reusable `kind` (§5.5) |
 | **node** | `node "id" label=… kind=… group=…` + optional `{ style …; icon …; pos x= y=; <type-specific> }` |
 | **edge** | `edge "from" "to" kind=… label=… dir=…` + decoration (`rel= line= from-end= to-end= from-card= to-card= glyph=`, §5.6) + optional `{ waypoints { pt x= y=; … } }` |
@@ -219,6 +221,90 @@ edge "api"    "orders"   kind="dependency" glyph="lock" to-card="N:M"
 The `class` relationship kinds (§5.1) map onto these ends automatically
 (`composition`→filled diamond, `aggregation`→hollow diamond, `inheritance`→hollow
 triangle…); `rel=` is the system-side spelling of the same machinery.
+
+### 5.7 Text & typography
+
+Text is a layout *input*, not decoration: a label's measured size sets its node's
+size, which dagre needs up front. The core orders this explicitly —
+
+```
+parse → load fonts → measure labels → size nodes → layout (dagre) → render
+```
+
+**Source.** All text is KDL string values, so the parser handles the hard cases —
+embedded quotes, multi-line (`"""…"""`), raw strings (`#"…"#`), full UTF-8 — with
+no custom escaping:
+
+```kdl
+note """
+Multi-line, "quoted", & symbolic — no escaping needed.
+""" attach="x"
+```
+
+Labels are **plain text** (no Markdown/HTML) — safe for the portable embed, simple
+to render. Structured text (class `attr`/`method`, §5.1) is *formatted* from its
+fields (`+ name: Type`, monospace), never typed as a raw string.
+
+**Sizing — auto-size (default).** A node grows to fit its label + padding, down to a
+per-kind minimum; no clipping. Text **wraps** at `wrap=` px (default ~160);
+`maxlines=N` ellipsizes when you want fixed-height boxes. Edge labels get a
+background plate for legibility; cardinality sits at the ends (§5.6).
+
+**Typography — document default + per-element override:**
+
+```kdl
+diagram type="system" theme="light" {
+    text font="sans" size=13 color="#222"                // document default
+    node "scorer" label="Scorer" {
+        text font="mono" size=12 align="center" wrap=180 maxlines=2
+    }
+}
+```
+
+`text` props: `font` (a font-map key, below) · `size` · `color` · `align` · `wrap`
+· `maxlines`.
+
+**Fonts — a keyed map.** A top-level `fonts` block maps **short keys** to families
+(open or commercial); text everywhere references a key, so font choices live in one
+place and a label stays terse:
+
+```kdl
+fonts {
+    h "Inter"          src="./fonts/Inter-var.woff2" weight="600"   // titles
+    b "Inter"          weight="400"                                  // body (reuses Inter)
+    m "JetBrains Mono" src="https://…/JetBrainsMono.woff2"          // code / mono
+}
+
+node "orders" label="Orders DB" kind="pg" { text font="h" }
+```
+
+- **Reference by key:** `font="h"`. Built-in keys `sys · sans · serif · mono` need
+  no declaration.
+- **Formats:** `woff2 · woff · ttf · otf` — open families and any commercial font
+  *you license and supply*. An entry **with `src=`** loads it; **without `src=`** the
+  family is assumed system-installed or already loaded. diagrama ships only open
+  defaults and **references** closed fonts, never redistributes them.
+- **Load-before-measure:** keyed fonts are awaited (`document.fonts.load`) *before*
+  measurement, so metrics — hence layout — are correct.
+- **Portability:** the self-contained embed can inline keyed fonts (base64) so one
+  `.html` renders identically offline; otherwise `src` is fetched at load.
+
+**Multiple text blocks (slots).** A node can carry more than one text block, each
+styled independently. `label=` feeds the `title` slot; add `text "slot" "content"`
+children for the rest, each with its own props:
+
+```kdl
+node "orders" label="Orders DB" kind="pg" {
+    text "title"    font="h" size=14
+    text "subtitle" "PostgreSQL 15" font="b" size=11 color="#666"
+    text "caption"  "primary store"  font="m" size=10 align="right"
+}
+```
+
+Standard slots: `title` (from `label=`), `subtitle`, `caption`. A bare `text <props>`
+(no slot name) sets the node-wide default that individual slots override. Class
+compartments are slots too — `name`, `attrs`, `methods` (§5.1) — so each compartment
+takes its own font key.
 
 ## 6. Layout
 

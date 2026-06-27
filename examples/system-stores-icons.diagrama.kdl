@@ -1,6 +1,13 @@
 diagram type="system" title="Order service — stores, messaging, ownership" theme="light" {
     layout engine="dagre" direction="LR" spacing=60
 
+    // Keyed font map: short keys referenced by text blocks below.
+    fonts {
+        h "Inter"          weight="600"   // titles
+        m "JetBrains Mono" weight="400"   // captions / tech
+    }
+    text font="h" size=13                 // document default
+
     // Reusable node types: base shape + icon + style, used by name as `kind`.
     nodetype "pg"    base="sql"   icon="postgres" { style fill="#e0eaff" stroke="#356" }
     nodetype "redis" base="cache" icon="redis"    { style fill="#ffe0e0" stroke="#a33" }
@@ -11,7 +18,9 @@ diagram type="system" title="Order service — stores, messaging, ownership" the
     group "bus"  label="Pipeline" kind="workflow" { member "events"; member "jobs" }
 
     node "api"      label="API gateway"   kind="gateway"
-    node "orders"   label="Orders DB"     kind="pg"
+    node "orders"   label="Orders DB"     kind="pg" {
+        text "subtitle" "PostgreSQL 15" font="m" size=10 color="#667"   // second, independent text block
+    }
     node "sessions" label="Session cache" kind="redis"
     node "media"    label="Media store"   kind="s3"
     node "events"   label="order.events"  kind="topic"
