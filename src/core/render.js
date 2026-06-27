@@ -2,7 +2,7 @@
 // Browser-only (needs a DOM canvas). Dispatches by diagram type; system and gantt are
 // implemented, other types draw a "not yet" placeholder so the bundle stays whole.
 
-import { Canvas, Rect, Textbox, Line, Polygon, FabricText, Group as FabricGroup } from 'fabric';
+import { Canvas, Rect, Ellipse, Textbox, Line, Polygon, FabricText, Group as FabricGroup } from 'fabric';
 import { layout } from './layout.js';
 import { setPos, emit } from './kdl.js';
 
@@ -12,6 +12,34 @@ const THEME = {
 };
 const GROUP_DASH = { boundary: [], zone: [], process: [6, 4], cluster: [2, 4],
                      workflow: [8, 3, 2, 3], network: [4, 4] };
+
+// base kind -> shape family (spec §5.4)
+const FAMILY = {};
+for (const k of ['service', 'component', 'actor', 'external', 'gateway', 'function', 'container', 'vm']) FAMILY[k] = 'compute';
+for (const k of ['sql', 'kv', 'blob', 'cache', 'timeseries', 'graph', 'search']) FAMILY[k] = 'storage';
+for (const k of ['queue', 'topic']) FAMILY[k] = 'messaging';
+for (const k of ['lb', 'cdn', 'dns', 'firewall', 'waf', 'proxy', 'vpn', 'nat', 'router', 'mesh', 'endpoint']) FAMILY[k] = 'network';
+const familyOf = (base) => FAMILY[base] || 'compute';
+
+/** Shape parts (centered at origin) for a node family — boxes/cylinders/pills/channels. */
+function shapeParts(family, w, h, fill, stroke) {
+  const common = { fill, stroke, strokeWidth: 1.4, originX: 'center', originY: 'center' };
+  if (family === 'storage') {
+    const ry = Math.min(9, h * 0.16);
+    return [
+      new Rect({ ...common, width: w, height: h - ry, top: ry / 2 }),
+      new Ellipse({ ...common, rx: w / 2, ry, top: (h / 2) - ry, fill: 'transparent' }),
+      new Ellipse({ ...common, rx: w / 2, ry, top: -(h / 2) + ry }),
+    ];
+  }
+  if (family === 'network') return [new Rect({ ...common, width: w, height: h, rx: h / 2, ry: h / 2 })];
+  if (family === 'messaging') return [
+    new Rect({ ...common, width: w, height: h, rx: 11, ry: 11 }),
+    new Line([-w / 2 + 6, -h / 2, -w / 2 + 6, h / 2], { stroke, strokeWidth: 1, originX: 'center', originY: 'center' }),
+    new Line([w / 2 - 6, -h / 2, w / 2 - 6, h / 2], { stroke, strokeWidth: 1, originX: 'center', originY: 'center' }),
+  ];
+  return [new Rect({ ...common, width: w, height: h, rx: 7, ry: 7 })];
+}
 
 /**
  * render(container, model, opts) -> controller.
@@ -85,12 +113,9 @@ function drawGraph(canvas, model, lo, theme, opts) {
   for (const id in lo.nodes) {
     const n = lo.nodes[id];
     const el = n.el;
-    const box = new Rect({
-      width: n.width, height: n.height, originX: 'center', originY: 'center',
-      fill: el.style?.fill || theme.fill, stroke: el.style?.stroke || theme.stroke,
-      strokeWidth: 1.4, rx: 7, ry: 7,
-    });
-    const parts = [box];
+    const fill = el.style?.fill || theme.fill;
+    const stroke = el.style?.stroke || theme.stroke;
+    const parts = shapeParts(familyOf(el.base), n.width, n.height, fill, stroke);
     const title = el.label || el.id;
     parts.push(new Textbox(title, {
       width: n.width - 16, originX: 'center', originY: 'center', top: el.text?.slots?.subtitle ? -8 : 0,

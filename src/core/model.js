@@ -48,18 +48,21 @@ function readText(node) {
 }
 
 /** Resolve a node's `kind` against nodetypes + vendor packs. */
-function resolveKind(kind, nodetypes) {
+function resolveKind(kind, nodetypes, packs) {
   if (kind == null) return { base: undefined };
   if (kind.includes(':')) {
+    const r = packs?.resolve(kind);
+    if (r) return { base: r.base, icon: r.icon, vendor: r.vendor, service: r.service, kindRef: kind };
     const [vendor, service] = kind.split(':');
-    return { vendor, service, kindRef: kind }; // base/icon filled when packs load
+    return { vendor, service, kindRef: kind }; // unresolved (pack not loaded)
   }
   const nt = nodetypes[kind];
   if (nt) return { base: nt.base, icon: nt.icon, style: nt.style, via: kind };
   return { base: kind };
 }
 
-export function buildModel(textOrDoc) {
+export function buildModel(textOrDoc, opts = {}) {
+  const packs = opts.packs;
   const doc = typeof textOrDoc === 'string' ? parseDoc(textOrDoc) : textOrDoc;
   const errors = [];
   const dn = diagramNode(doc);
@@ -118,7 +121,7 @@ export function buildModel(textOrDoc) {
       case 'step': {
         const el = {
           id: a[0], label: p.label, kind: p.kind, group: p.group,
-          ...resolveKind(p.kind, m.nodetypes),
+          ...resolveKind(p.kind, m.nodetypes, packs),
           style: readStyle(c), pos: readPos(c), text: readText(c), props: p,
         };
         (name === 'step' ? m.steps : m.nodes).push(el);
