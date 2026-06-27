@@ -25,23 +25,21 @@ const familyOf = (base) => FAMILY[base] || 'compute';
 function shapeParts(family, w, h, fill, stroke) {
   const common = { fill, stroke, strokeWidth: 1.4, originX: 'center', originY: 'center' };
   if (family === 'storage') {
-    // cylinder: a trunk with a curved (arc) bottom + a full top ellipse for the rim.
+    // cylinder. Body is an OPEN path (sides + curved bottom, NO top edge), so nothing is
+    // stroked across the top; the OPAQUE cap ellipse is drawn over it to form the rim.
     const rx = w / 2, ry = Math.min(10, h * 0.18);
     const cyTop = -h / 2 + ry, cyBot = h / 2 - ry;
-    const body = `M ${-rx} ${cyTop} L ${rx} ${cyTop} L ${rx} ${cyBot} A ${rx} ${ry} 0 0 0 ${-rx} ${cyBot} Z`;
+    const body = `M ${rx} ${cyTop} L ${rx} ${cyBot} A ${rx} ${ry} 0 0 0 ${-rx} ${cyBot} L ${-rx} ${cyTop}`;
     return [
-      new Path(body, { ...common, left: 0, top: ry / 2 }), // top:ry/2 keeps the bbox-centered path aligned
-      new Ellipse({ ...common, rx, ry, top: cyTop }),       // top rim (fill + stroke)
+      new Path(body, { ...common, fill, left: 0, top: ry / 2 }), // top:ry/2 aligns the bbox-centered path
+      new Ellipse({ ...common, fill, rx, ry, top: cyTop }),       // opaque cap (fill + stroke), drawn over
     ];
   }
   if (family === 'network') return [new Rect({ ...common, width: w, height: h, rx: h / 2, ry: h / 2 })];
   if (family === 'messaging') {
-    // open channel: a stadium with a small notch at each end (no inner bars).
-    const rx = w / 2, r = h / 2;
-    return [
-      new Rect({ ...common, width: w, height: h, rx: r, ry: r }),
-      new Ellipse({ ...common, rx: r * 0.5, ry: r, left: rx - r * 0.5, fill: 'transparent' }),
-    ];
+    // single moderately-rounded shape (no overlay); topic vs queue differ by icon.
+    const r = Math.min(h * 0.45, 16);
+    return [new Rect({ ...common, width: w, height: h, rx: r, ry: r })];
   }
   return [new Rect({ ...common, width: w, height: h, rx: 7, ry: 7 })];
 }
