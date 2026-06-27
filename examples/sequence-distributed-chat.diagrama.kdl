@@ -1,0 +1,24 @@
+diagram type="sequence" title="Distributed chat — send a message to a channel" theme="light" {
+    participant "client" label="Client"            kind="actor"
+    participant "edge"   label="Edge node"         kind="object"
+    participant "owner"  label="Topic owner shard" kind="control"
+    participant "nodes"  label="Subscriber nodes"  kind="object"
+    participant "log"    label="Topic log"         kind="entity"
+
+    message "client" "edge"  kind="sync"   label="send(room:42, msg)"
+    message "edge"   "owner" kind="sync"   label="route(Topic room:42)"
+    message "owner"  "owner" kind="self"   label="resolve subscriber node set"
+
+    fragment kind="alt" label="channel size" {
+        branch label="small/medium → push grouped by node" {
+            message "owner" "nodes"  kind="async" label="fan-out (one msg per node)"
+            message "nodes" "client" kind="async" label="deliver to local connections"
+        }
+        branch label="huge/broadcast → durable log + pull" {
+            message "owner" "log"    kind="async" label="append (offset)"
+            message "log"   "client" kind="async" label="stream from offset"
+        }
+    }
+
+    message "owner" "edge" kind="return" label="ack (offset)"
+}

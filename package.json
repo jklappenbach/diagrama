@@ -1,0 +1,22 @@
+{
+  "name": "diagrama",
+  "version": "0.1.0",
+  "description": "Text-authored UML/sequence/state/system diagrams rendered with fabric.js",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "bundle": "esbuild src/app/index.js --bundle --minify --format=iife --global-name=Diagrama --outfile=dist/diagrama.min.js"
+  },
+  "dependencies": {
+    "fabric": "^6.0.0",
+    "dagre": "^0.8.5",
+    "@bgotink/kdl": "^0.2.0",
+    "monaco-editor": "^0.50.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.0",
+    "vite": "^5.0.0"
+  }
+}

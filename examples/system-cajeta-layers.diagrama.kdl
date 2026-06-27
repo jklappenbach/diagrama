@@ -1,0 +1,24 @@
+diagram type="system" title="Cajeta networking & framework layers" theme="light" {
+    layout engine="dagre" direction="TB" spacing=50
+
+    group "g-app" label="Application"        kind="boundary" { member "app" }
+    group "g-fw"  label="Framework (policy)" kind="boundary" { member "primavera" }
+    group "g-lib" label="Libraries"          kind="boundary" { member "http"; member "cluster"; member "gossip" }
+    group "g-std" label="Stdlib (core)"      kind="boundary" { member "ionet"; member "aot" }
+
+    node "app"       label="Your service"              kind="service"   group="g-app"
+    node "primavera" label="primavera"                 kind="service"   group="g-fw"
+    node "http"      label="cajeta-http"               kind="service"   group="g-lib"
+    node "cluster"   label="cajeta-cluster"            kind="service"   group="g-lib"
+    node "gossip"    label="cajeta-gossip (SWIM)"      kind="service"   group="g-lib"
+    node "ionet"     label="cajeta.io.net (transport)" kind="service"   group="g-std"
+    node "aot"       label="cajeta.aot (DI substrate)" kind="component" group="g-std"
+
+    edge "app"       "primavera" kind="dependency"
+    edge "primavera" "http"      kind="dependency" label="web policy"
+    edge "primavera" "cluster"   kind="dependency" label="connections"
+    edge "primavera" "aot"       kind="dependency"
+    edge "http"      "ionet"     kind="dependency"
+    edge "cluster"   "gossip"    kind="dependency"
+    edge "gossip"    "ionet"     kind="dependency"
+}
