@@ -1,0 +1,49 @@
+// Azure icon pack — service -> base kind (§5.4) + icon. kind="azure:<key>".
+// Seed = common catalog; full set generated from Azure Architecture Icons.
+pack "azure" label="Microsoft Azure" iconbase="azure/" {
+    // compute
+    map "functions"          base="function"  icon="functions"
+    map "containerinstances" base="container" icon="containerinstances"
+    map "aks"                base="container" icon="aks"
+    map "containerapps"      base="container" icon="containerapps"
+    map "vm"                 base="vm"        icon="vm"
+    map "appservice"         base="service"   icon="appservice"
+
+    // storage
+    map "blobstorage"        base="blob"     icon="blobstorage"
+    map "manageddisk"        base="blob"     icon="manageddisk"
+    map "files"              base="blob"     icon="files"
+    map "cosmosdb"           base="kv"       icon="cosmosdb"
+    map "tablestorage"       base="kv"       icon="tablestorage"
+    map "sqldatabase"        base="sql"      icon="sqldatabase"
+    map "synapse"            base="sql"      icon="synapse"
+    map "cacheforredis"      base="cache"    icon="cacheforredis"
+    map "cognitivesearch"    base="search"   icon="cognitivesearch"
+
+    // messaging
+    map "servicebus"         base="topic"    icon="servicebus"
+    map "queuestorage"       base="queue"    icon="queuestorage"
+    map "eventhubs"          base="topic"    icon="eventhubs"
+    map "eventgrid"          base="topic"    icon="eventgrid"
+
+    // network
+    map "loadbalancer"       base="lb"       icon="loadbalancer"
+    map "applicationgateway" base="waf"      icon="applicationgateway"
+    map "frontdoor"          base="cdn"      icon="frontdoor"
+    map "cdn"                base="cdn"      icon="cdn"
+    map "dns"                base="dns"      icon="dns"
+    map "firewall"           base="firewall" icon="firewall"
+    map "apimanagement"      base="gateway"  icon="apimanagement"
+    map "natgateway"         base="nat"      icon="natgateway"
+    map "vpngateway"         base="vpn"      icon="vpngateway"
+
+    // ci/cd
+    map "pipelines"          base="stage"    icon="pipelines"
+    map "devops"            base="service"   icon="devops"
+    map "artifacts"          base="artifact" icon="artifacts"
+
+    // other
+    map "keyvault"           base="service"  icon="keyvault"
+    map "entraid"            base="service"  icon="entraid"
+    map "logicapps"          base="service"  icon="logicapps"
+}

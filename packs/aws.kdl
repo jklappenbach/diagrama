@@ -1,0 +1,62 @@
+// AWS icon pack — service -> base kind (§5.4) + icon. Reference as kind="aws:<key>".
+// Seed = common catalog; full set generated from AWS Architecture Icons (§packs/README).
+pack "aws" label="Amazon Web Services" iconbase="aws/" {
+    // compute
+    map "lambda"            base="function"  icon="lambda"
+    map "fargate"           base="container" icon="fargate"
+    map "ecs"               base="container" icon="ecs"
+    map "eks"               base="container" icon="eks"
+    map "ec2"               base="vm"        icon="ec2"
+    map "lightsail"         base="vm"        icon="lightsail"
+    map "batch"             base="container" icon="batch"
+    map "apprunner"         base="container" icon="apprunner"
+    map "elasticbeanstalk"  base="service"   icon="elasticbeanstalk"
+
+    // storage
+    map "s3"                base="blob"       icon="s3"
+    map "ebs"               base="blob"       icon="ebs"
+    map "efs"               base="blob"       icon="efs"
+    map "dynamodb"          base="kv"         icon="dynamodb"
+    map "rds"               base="sql"        icon="rds"
+    map "aurora"            base="sql"        icon="aurora"
+    map "redshift"          base="sql"        icon="redshift"
+    map "elasticache"       base="cache"      icon="elasticache"
+    map "memorydb"          base="cache"      icon="memorydb"
+    map "timestream"        base="timeseries" icon="timestream"
+    map "neptune"           base="graph"      icon="neptune"
+    map "opensearch"        base="search"     icon="opensearch"
+
+    // messaging
+    map "sqs"               base="queue"     icon="sqs"
+    map "sns"               base="topic"     icon="sns"
+    map "kinesis"           base="topic"     icon="kinesis"
+    map "eventbridge"       base="topic"     icon="eventbridge"
+    map "mq"                base="queue"     icon="mq"
+    map "msk"               base="topic"     icon="msk"
+
+    // network
+    map "alb"               base="lb"        icon="alb"
+    map "nlb"               base="lb"        icon="nlb"
+    map "globalaccelerator" base="lb"        icon="globalaccelerator"
+    map "cloudfront"        base="cdn"       icon="cloudfront"
+    map "route53"           base="dns"       icon="route53"
+    map "waf"               base="waf"       icon="waf"
+    map "shield"            base="firewall"  icon="shield"
+    map "apigateway"        base="gateway"   icon="apigateway"
+    map "natgateway"        base="nat"       icon="natgateway"
+    map "transitgateway"    base="router"    icon="transitgateway"
+    map "appmesh"           base="mesh"      icon="appmesh"
+    map "privatelink"       base="endpoint"  icon="privatelink"
+
+    // ci/cd
+    map "codepipeline"      base="stage"     icon="codepipeline"
+    map "codebuild"         base="build"     icon="codebuild"
+    map "codedeploy"        base="deploy"    icon="codedeploy"
+    map "codecommit"        base="source"    icon="codecommit"
+    map "codeartifact"      base="artifact"  icon="codeartifact"
+
+    // other
+    map "cognito"           base="service"   icon="cognito"
+    map "secretsmanager"    base="service"   icon="secretsmanager"
+    map "stepfunctions"     base="service"   icon="stepfunctions"
+}

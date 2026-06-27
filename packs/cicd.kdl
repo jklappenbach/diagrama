@@ -1,0 +1,40 @@
+// CI/CD platform pack — toolchain -> base kind + icon. kind="ci:<key>".
+// Cross-vendor (not tied to one cloud); cloud-native CI lives in aws/gcp/azure packs.
+// Seed = common platforms; SVGs converted from each project's official mark (SVG-first).
+pack "ci" label="CI/CD platforms" iconbase="cicd/" {
+    // source-hosted pipelines
+    map "github-actions"     base="service"  icon="github-actions"
+    map "gitlab-ci"          base="service"  icon="gitlab-ci"
+    map "bitbucket-pipelines" base="service" icon="bitbucket-pipelines"
+    map "azure-pipelines"    base="service"  icon="azure-pipelines"
+    map "gitea-actions"      base="service"  icon="gitea-actions"
+
+    // standalone CI servers / runners
+    map "jenkins"            base="service"  icon="jenkins"
+    map "teamcity"           base="service"  icon="teamcity"
+    map "bamboo"             base="service"  icon="bamboo"
+    map "circleci"           base="service"  icon="circleci"
+    map "travisci"           base="service"  icon="travisci"
+    map "buildkite"          base="service"  icon="buildkite"
+    map "drone"              base="service"  icon="drone"
+    map "woodpecker"         base="service"  icon="woodpecker"
+    map "concourse"          base="service"  icon="concourse"
+    map "gocd"               base="service"  icon="gocd"
+    map "semaphore"          base="service"  icon="semaphore"
+    map "codefresh"          base="service"  icon="codefresh"
+
+    // cloud-native / kubernetes pipelines
+    map "tekton"             base="service"  icon="tekton"
+    map "jenkins-x"          base="service"  icon="jenkins-x"
+
+    // continuous delivery / GitOps (deploy-centric)
+    map "argocd"             base="deploy"   icon="argocd"
+    map "fluxcd"             base="deploy"   icon="fluxcd"
+    map "spinnaker"          base="deploy"   icon="spinnaker"
+    map "harness"            base="deploy"   icon="harness"
+    map "octopus"            base="deploy"   icon="octopus"
+
+    // artifact / registry
+    map "artifactory"        base="artifact" icon="artifactory"
+    map "nexus"              base="artifact" icon="nexus"
+}

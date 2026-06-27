@@ -1,0 +1,48 @@
+// Google Cloud icon pack — service -> base kind (§5.4) + icon. kind="gcp:<key>".
+// Seed = common catalog; full set generated from Google Cloud official icons.
+pack "gcp" label="Google Cloud" iconbase="gcp/" {
+    // compute
+    map "cloudfunctions"   base="function"  icon="cloudfunctions"
+    map "cloudrun"         base="container" icon="cloudrun"
+    map "gke"              base="container" icon="gke"
+    map "gce"              base="vm"        icon="gce"
+    map "appengine"        base="service"   icon="appengine"
+
+    // storage
+    map "gcs"              base="blob"       icon="gcs"
+    map "persistentdisk"   base="blob"       icon="persistentdisk"
+    map "filestore"        base="blob"       icon="filestore"
+    map "firestore"        base="kv"         icon="firestore"
+    map "datastore"        base="kv"         icon="datastore"
+    map "bigtable"         base="kv"         icon="bigtable"
+    map "cloudsql"         base="sql"        icon="cloudsql"
+    map "spanner"          base="sql"        icon="spanner"
+    map "bigquery"         base="sql"        icon="bigquery"
+    map "memorystore"      base="cache"      icon="memorystore"
+
+    // messaging
+    map "pubsub"           base="topic"     icon="pubsub"
+    map "cloudtasks"       base="queue"     icon="cloudtasks"
+
+    // network
+    map "cloudloadbalancing" base="lb"      icon="cloudloadbalancing"
+    map "cloudcdn"         base="cdn"       icon="cloudcdn"
+    map "clouddns"         base="dns"       icon="clouddns"
+    map "cloudarmor"       base="waf"       icon="cloudarmor"
+    map "apigateway"       base="gateway"   icon="apigateway"
+    map "cloudnat"         base="nat"       icon="cloudnat"
+    map "cloudrouter"      base="router"    icon="cloudrouter"
+    map "trafficdirector"  base="mesh"      icon="trafficdirector"
+    map "cloudvpn"         base="vpn"       icon="cloudvpn"
+
+    // ci/cd
+    map "cloudbuild"       base="build"     icon="cloudbuild"
+    map "clouddeploy"      base="deploy"    icon="clouddeploy"
+    map "artifactregistry" base="artifact"  icon="artifactregistry"
+    map "sourcerepositories" base="source"  icon="sourcerepositories"
+
+    // other
+    map "secretmanager"    base="service"   icon="secretmanager"
+    map "workflows"        base="service"   icon="workflows"
+    map "identityplatform" base="service"   icon="identityplatform"
+}

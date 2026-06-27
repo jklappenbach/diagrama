@@ -1,0 +1,25 @@
+diagram type="pipeline" title="Build → test → deploy" theme="light" {
+    layout engine="dagre" direction="LR" spacing=55
+
+    group "ci" label="CI"      kind="process"
+    group "cd" label="Delivery" kind="workflow"
+
+    step "t"    kind="trigger"            on="pr"      label="PR opened"
+    step "src"  kind="source"  group="ci"              label="Checkout"
+    step "b"    kind="ci:github-actions" group="ci"    label="Build"        // tool icon
+    step "test" kind="test"    group="ci"              label="Unit + lint"
+    step "scan" kind="scan"    group="ci"              label="SAST + deps"
+    step "img"  kind="artifact" group="ci"             label="container image"
+    step "appr" kind="approval" group="cd" by="oncall" label="Promote to prod?"
+    step "dep"  kind="aws:codedeploy" group="cd"       label="Deploy prod"
+
+    edge "t"    "src"  kind="flow"
+    edge "src"  "b"    kind="flow"
+    edge "b"    "test" kind="flow"
+    edge "b"    "scan" kind="parallel"
+    edge "b"    "img"  kind="flow"
+    edge "test" "appr" kind="onsuccess"
+    edge "scan" "appr" kind="onsuccess"
+    edge "appr" "dep"  kind="manual"
+    edge "test" "src"  kind="onfailure" label="fail → stop"
+}

@@ -1,6 +1,6 @@
 # diagrama
 
-A diagramming system for **UML class, sequence, state, and system-design** diagrams —
+A diagramming system for **class, sequence, state, system-design, and CI/CD** diagrams —
 authored as a **KDL** document, laid out automatically, and drawn on canvas with
 [fabric.js](http://fabricjs.com/). The document describes *meaning*, not pixels, so
 diagrams are diffable and hand/AI-authorable. One **renderer core** drives several
@@ -9,7 +9,7 @@ Code and IntelliJ, and a **standalone browser editor** — and edits (typing the
 dragging a shape) are written back **format-preservingly** and **always saved**.
 
 > **Status: active design.** Format + architecture in [`docs/spec.md`](docs/spec.md)
-> (v0.6). Implementation starting.
+> (v0.7). Implementation starting.
 
 ## Why
 

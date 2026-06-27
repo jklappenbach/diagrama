@@ -1,0 +1,33 @@
+// Cloudflare icon pack — service -> base kind (§5.4) + icon. kind="cf:<key>".
+// Seed = common catalog; full set generated from Cloudflare's icon set.
+pack "cf" label="Cloudflare" iconbase="cf/" {
+    // compute
+    map "workers"        base="function"  icon="workers"
+    map "pages"          base="service"   icon="pages"
+    map "durableobjects" base="kv"        icon="durableobjects"
+
+    // storage
+    map "r2"             base="blob"      icon="r2"
+    map "kv"             base="kv"        icon="kv"
+    map "d1"             base="sql"       icon="d1"
+    map "hyperdrive"     base="cache"     icon="hyperdrive"
+    map "cache"          base="cache"     icon="cache"
+
+    // messaging
+    map "queues"         base="queue"     icon="queues"
+
+    // network
+    map "loadbalancing"  base="lb"        icon="loadbalancing"
+    map "cdn"            base="cdn"       icon="cdn"
+    map "dns"            base="dns"       icon="dns"
+    map "waf"            base="waf"       icon="waf"
+    map "magicfirewall"  base="firewall"  icon="magicfirewall"
+    map "gateway"        base="gateway"   icon="gateway"
+    map "tunnel"         base="proxy"     icon="tunnel"
+    map "spectrum"       base="proxy"     icon="spectrum"
+    map "magictransit"   base="router"    icon="magictransit"
+
+    // security / other
+    map "access"         base="service"   icon="access"
+    map "turnstile"      base="service"   icon="turnstile"
+}

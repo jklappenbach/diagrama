@@ -1,6 +1,6 @@
-# diagrama — specification (v0.6)
+# diagrama — specification (v0.7)
 
-A diagramming system for **UML class, sequence, state, and system-design** diagrams,
+A diagramming system for **class, sequence, state, system-design, and CI/CD** diagrams,
 authored as a **KDL** document that describes *meaning, not pixels*, auto-laid-out and
 drawn with **fabric.js**. One **renderer core** powers several **surfaces**: an
 embeddable read-only view, **IDE preview plugins** (the Markdown editor+preview pattern,
@@ -15,8 +15,8 @@ in VS Code and IntelliJ), and a **standalone browser editor**. Edits — typing 
 
 1. **Text-authorable, semantic — not pixels.** The document describes a *class*, a
    *message*, a *dependency* — never coordinates. The app lays it out and renders it.
-2. **One format, four diagram types** — `class`, `sequence`, `state`, `system` — over a
-   shared envelope (§4) with per-type vocabularies (§5).
+2. **One format, five diagram types** — `class`, `sequence`, `state`, `system`,
+   `pipeline` (CI/CD) — over a shared envelope (§4) with per-type vocabularies (§5).
 3. **One renderer, several surfaces.** A single **renderer core** (parse → layout →
    draw) is the shared artifact behind every surface (§3, §8). Surfaces differ only in
    *who provides the text editor* and *whether editing writes back*.
@@ -140,6 +140,7 @@ A node's **shape** comes from a *family*; its **icon** picks the specific tech/r
 | **compute** | rectangle | `service` · `component` · `actor` · `external` · `gateway` · `function` · `container` · `vm` |
 | **storage** | cylinder | `sql` · `kv` · `blob` · `cache` (start); extensible: `timeseries` · `graph` · `search` |
 | **messaging** | channel | `queue` · `topic` (same shape; FIFO-stack vs. fan-out icon) |
+| **network** | pill | `lb` · `cdn` · `dns` · `firewall` · `waf` · `proxy` · `vpn` · `nat` · `router` · `mesh` · `endpoint` |
 
 **Runtime substrate** — `function` (serverless / FaaS: Lambda, Cloud Functions),
 `container` (managed containers: Fargate, Cloud Run), `vm` (unmanaged instances:
@@ -158,6 +159,7 @@ level); `service` / `component` stay deployment-agnostic.
 | `process` | gear | dashed |
 | `cluster` | stacked nodes | dotted |
 | `workflow` (distributed) | branch/flow | dash-dot |
+| `network` (VPC / VNet / subnet) | cloud-boundary | dashed |
 
 **Edges** — `kind` sets a preset (line + ends + glyph), all overridable via §5.6:
 
@@ -184,7 +186,9 @@ node "scorer" label="Scorer" kind="service" {
 ```
 
 - **Anchor** (`pos=`): `tl` (default) · `tr` · `bl` · `br` · `center` (watermark).
-- **Source**: a built-in registry name, or `src=` (file / URL / inline SVG).
+- **Source**: a built-in registry name, or `src=` (file / URL / inline SVG). Icons
+  are **SVG everywhere**; bitmap-only sources are converted to SVG at build time
+  (§packs), raster kept only when conversion is impossible.
 - **Registry**: vendor-neutral generics (`sql kv blob cache queue topic` + the
   compute set) **and a bundled vendor pack** (`redis postgres mysql dynamo s3 gcs
   kafka sqs lambda fargate ec2`, extensible). Generics are the default; vendors are
@@ -202,6 +206,25 @@ node "orders"   label="Orders DB"     kind="pg"
 ```
 
 Built-in kinds are just predefined nodetypes, so vendor/cloud icon packs drop in.
+
+**Vendor packs.** Major-cloud catalogs ship as namespaced packs — `aws`, `gcp`,
+`azure`, `cf` (Cloudflare) — each mapping a service to a **base kind + vendor icon**.
+Reference a service directly with a `vendor:service` kind, or wrap it in a
+`nodetype`:
+
+```kdl
+node "ingest" label="Ingest"  kind="aws:lambda"     // -> base=function, AWS Lambda icon
+node "edge"   label="Edge fn" kind="cf:workers"     // -> base=function, Cloudflare Workers icon
+node "db"     label="Orders"  kind="gcp:cloudsql"   // -> base=sql, Cloud SQL icon
+node "bus"    label="Events"  kind="azure:eventhubs" // -> base=topic, Event Hubs icon
+```
+
+A `kind` containing `:` resolves through the named pack's `map` (a `:`-free `kind`
+stays a built-in/local nodetype). Packs are data manifests — `packs/<vendor>.kdl`
+(§9) — **generated from each vendor's official icon library**, so the *full* service
+catalog is covered and stays updatable: AWS Architecture Icons, Google Cloud icons,
+Azure Architecture Icons, and Cloudflare's icon set (attributed per their usage
+terms). The core bundles a curated subset; full packs load on demand.
 
 ### 5.6 Edge decoration (shared by `class` & `system`)
 
@@ -312,6 +335,61 @@ Standard slots: `title` (from `label=`), `subtitle`, `caption`. A bare `text <pr
 compartments are slots too — `name`, `attrs`, `methods` (§5.1) — so each compartment
 takes its own font key.
 
+### 5.8 `pipeline` (CI/CD)
+
+A CI/CD pipeline as a left-to-right flow of **steps** grouped into **stages**, with
+explicit success/failure routing and gates. `step` shapes encode the *control role*;
+the **icon** encodes the *specific action* (and platform packs supply tool icons, §5.5).
+
+**Steps** — shape by role, icon by action:
+
+| `step.kind` | shape | role |
+|---|---|---|
+| `trigger` | start pill | what kicks the pipeline (push / PR / schedule / manual / webhook via `on=`) |
+| `source` | rounded box | checkout / fetch source |
+| `build` · `test` · `scan` · `package` · `deploy` · `release` · `job` | rounded box (distinct icon) | work steps |
+| `approval` · `gate` | diamond | manual approval / automated gate (`by=`, `when=`) |
+| `artifact` | document | produced/consumed artifact (image, package, report) |
+
+- **Stages** are `group`s (lanes/columns); steps belong to a stage via `group=`.
+- **Trigger detail**: `on="push|pr|schedule|manual|tag|webhook"` (+ `cron=` for schedule).
+- **Tool/platform** on any step: `kind="ci:github-actions"`, `kind="aws:codebuild"`,
+  etc. — resolves to the right base step kind + the vendor/tool icon.
+
+**Edges** — flow with outcome routing:
+
+| `edge.kind` | line | meaning |
+|---|---|---|
+| `flow` | solid arrow | next step (default) |
+| `onsuccess` | solid green | take on success |
+| `onfailure` | dashed red | take on failure |
+| `manual` | dashed + person glyph | requires human action |
+| `parallel` | solid, forked | fan-out to concurrent steps |
+
+```kdl
+diagram type="pipeline" title="Build → deploy" {
+    layout engine="dagre" direction="LR"
+
+    group "ci"  label="CI"  kind="process"
+    group "cd"  label="CD"  kind="workflow"
+
+    step "t"    kind="trigger" on="pr"               label="PR opened"
+    step "src"  kind="source"  group="ci"            label="Checkout"
+    step "b"    kind="ci:github-actions" group="ci"  label="Build"         // tool icon
+    step "test" kind="test"    group="ci"            label="Unit + lint"
+    step "img"  kind="artifact" group="ci"           label="container image"
+    step "appr" kind="approval" group="cd" by="oncall" label="Promote?"
+    step "dep"  kind="aws:codedeploy" group="cd"     label="Deploy prod"
+
+    edge "t" "src" kind="flow"
+    edge "src" "b" kind="flow"
+    edge "b" "test" kind="flow"
+    edge "b" "img"  kind="flow"
+    edge "test" "appr" kind="onsuccess"
+    edge "appr" "dep"  kind="manual"
+}
+```
+
 ## 6. Layout
 
 - **Graph types** → dagre by default (`layout.direction` controls flow); ELK.js optional.
@@ -388,6 +466,7 @@ diagrama/
     web/         — standalone browser editor (Monaco + core + two-way sync + serve)
     vscode/      — VS Code preview/custom-editor extension (wraps core)
     intellij/    — IntelliJ FileEditorProvider plugin (JCEF wraps core)
+  packs/         — vendor icon packs (aws/gcp/azure/cloudflare): manifest + SVGs (§5.5)
   examples/      — sample .diagrama.kdl (dogfood: cajeta diagrams)
   vendor/        — bundled vscode-kdl grammar (Apache-2.0, attributed)
   docs/spec.md   — this file
