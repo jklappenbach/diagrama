@@ -43,6 +43,7 @@ describe('render smoke (headless fabric)', () => {
     'gantt-release-plan.diagrama.kdl',
     'class-shapes.diagrama.kdl',
     'state-order.diagrama.kdl',
+    'sequence-distributed-chat.diagrama.kdl',
   ]) {
     it(`renders ${file} without throwing and draws objects`, () => {
       const el = document.createElement('div');

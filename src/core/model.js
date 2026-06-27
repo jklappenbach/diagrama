@@ -89,6 +89,9 @@ export function buildModel(textOrDoc, opts = {}) {
     lanes: [],
     tasks: [],
     steps: [],
+    participants: [],
+    messages: [],
+    fragments: [],
     start: undefined,
     errors,
     doc,
@@ -173,8 +176,38 @@ export function buildModel(textOrDoc, opts = {}) {
     }
   }
 
+  if (m.type === 'sequence') buildSequence(dn, m);
   validate(m);
   return m;
+}
+
+// Sequence: document order IS time. Walk in order, giving each message a row index;
+// fragments record the row range they span and their branch boundaries (spec §5.2).
+function buildSequence(dn, m) {
+  const pushMsg = (c) => {
+    const a = args(c), p = props(c);
+    m.messages.push({ from: a[0], to: a[1], kind: p.kind, label: p.label, row: m.messages.length });
+  };
+  const visit = (nodes) => {
+    for (const c of nodes) {
+      const nm = c.name.name;
+      if (nm === 'participant') m.participants.push({ id: args(c)[0], ...props(c) });
+      else if (nm === 'message') pushMsg(c);
+      else if (nm === 'fragment') {
+        const start = m.messages.length;
+        const branches = [];
+        for (const b of childrenOf(c)) {
+          if (b.name.name === 'branch') {
+            const bs = m.messages.length;
+            visit(childrenOf(b));
+            branches.push({ label: props(b).label, range: [bs, m.messages.length] });
+          } else if (b.name.name === 'message') pushMsg(b);
+        }
+        m.fragments.push({ kind: props(c).kind, label: props(c).label, range: [start, m.messages.length], branches });
+      }
+    }
+  };
+  visit(childrenOf(dn));
 }
 
 function validate(m) {

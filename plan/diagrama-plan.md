@@ -22,10 +22,11 @@ by dependency.
   total duration, weekend-skipping dates, cycle detection.
 - ✅ **persist hook** (Phase 2 core) — drag → `object:modified` → minimal KDL diff,
   verified end-to-end. *(Save *targets* per surface still to come.)*
-- ✅ **types rendered**: system, gantt, class. pipeline renders via the graph path.
+- ✅ **all six types render**: system, gantt, class, state, sequence (temporal),
+  pipeline (graph path). 28 tests green.
 
-**Next:** 1e fonts (FontFace load + real text measurement); SVG icon assets +
-remaining type renderers (sequence temporal, state); then Phase 4 IntelliJ surface.
+**Next:** 1e fonts (FontFace load + real text measurement); SVG icon assets (Phase 7
+generation); then **Phase 4 IntelliJ surface** (JCEF preview over the core bundle).
 Open `examples/preview.html` (served) to eyeball it.
 
 ## North star

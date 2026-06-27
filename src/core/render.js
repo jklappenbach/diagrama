@@ -71,6 +71,8 @@ export function render(container, model, opts = {}) {
     drawPlaceholder(canvas, theme, `dependency cycle: ${lo.cycle.join(' → ')}`, contentW);
   } else if (lo.kind === 'gantt') {
     drawGantt(canvas, model, lo, theme);
+  } else if (lo.kind === 'sequence') {
+    drawSequence(canvas, model, lo, theme);
   } else if (model.type === 'system') {
     drawGraph(canvas, model, lo, theme, opts);
   } else {
@@ -330,6 +332,54 @@ function drawGantt(canvas, model, lo, theme) {
   }
   canvas.add(new FabricText(`total: ${lo.total} working days`, { left: lo.gutter, top: lo.height - 12,
     fontSize: 10, fill: theme.muted, selectable: false, evented: false }));
+}
+
+// ---------- sequence ----------
+
+function drawSequence(canvas, model, lo, theme) {
+  for (const p of lo.participants) {
+    canvas.add(new Line([p.x, lo.lifelineTop, p.x, lo.lifelineBottom],
+      { stroke: '#c5c9d6', strokeDashArray: [4, 4], selectable: false, evented: false }));
+    canvas.add(new Rect({ left: p.x, top: lo.lifelineTop - 17, width: 120, height: 30,
+      originX: 'center', originY: 'center', rx: 5, ry: 5, fill: theme.fill, stroke: theme.stroke,
+      strokeWidth: 1.3, selectable: false, evented: false }));
+    canvas.add(new FabricText(p.label || p.id, { left: p.x, top: lo.lifelineTop - 17,
+      originX: 'center', originY: 'center', fontSize: 12, fill: theme.text, selectable: false, evented: false }));
+  }
+
+  for (const fr of lo.fragments) {
+    canvas.add(new Rect({ left: fr.x, top: fr.y, width: fr.w, height: fr.h,
+      fill: 'rgba(60,80,160,0.03)', stroke: theme.accent, strokeWidth: 1, rx: 3, ry: 3,
+      selectable: false, evented: false }));
+    canvas.add(new FabricText(`${fr.kind}${fr.label ? ` [${fr.label}]` : ''}`,
+      { left: fr.x + 5, top: fr.y + 2, fontSize: 9, fill: theme.accent, selectable: false, evented: false }));
+    fr.branches.forEach((b, i) => {
+      if (i > 0) canvas.add(new Line([fr.x, b.y, fr.x + fr.w, b.y],
+        { stroke: theme.accent, strokeDashArray: [4, 3], selectable: false, evented: false }));
+      if (b.label) canvas.add(new FabricText(b.label, { left: fr.x + fr.w / 2, top: b.y + 2,
+        originX: 'center', fontSize: 9, fill: theme.muted, selectable: false, evented: false }));
+    });
+  }
+
+  for (const msg of lo.messages) {
+    const ret = msg.kind === 'return';
+    if (msg.self) {
+      const x = msg.x1, y = msg.y;
+      [[x, y, x + 30, y], [x + 30, y, x + 30, y + 12], [x + 30, y + 12, x, y + 12]].forEach((pts) =>
+        canvas.add(new Line(pts, { stroke: theme.stroke, selectable: false, evented: false })));
+      placeEnd(canvas, makeEnd('open', theme.stroke), x, y + 12, 180);
+      if (msg.label) canvas.add(new FabricText(msg.label, { left: x + 34, top: y - 2, fontSize: 10,
+        fill: theme.text, selectable: false, evented: false }));
+    } else {
+      canvas.add(new Line([msg.x1, msg.y, msg.x2, msg.y], { stroke: theme.stroke, strokeWidth: 1.2,
+        strokeDashArray: ret ? [5, 4] : [], selectable: false, evented: false }));
+      placeEnd(canvas, makeEnd(msg.kind === 'async' || ret ? 'open' : 'arrow', theme.stroke),
+        msg.x2, msg.y, msg.x2 >= msg.x1 ? 0 : 180);
+      if (msg.label) canvas.add(new FabricText(msg.label, { left: (msg.x1 + msg.x2) / 2, top: msg.y - 12,
+        originX: 'center', fontSize: 10, fill: theme.text, backgroundColor: theme.bg,
+        selectable: false, evented: false }));
+    }
+  }
 }
 
 function star(cx, cy, r, fill) {

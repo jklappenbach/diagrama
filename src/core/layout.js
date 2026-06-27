@@ -114,7 +114,41 @@ export function layoutGantt(model, opts = {}) {
   };
 }
 
+/** sequence layout: participants across the top, messages top-to-bottom in doc order. */
+export function layoutSequence(model) {
+  const margin = 50, gap = 180, headerW = 130, headerH = 34, rowH = 42, top = 20;
+  const participants = model.participants.map((pp, i) => ({ ...pp, x: margin + headerW / 2 + i * gap }));
+  const xOf = {};
+  participants.forEach((pp) => { xOf[pp.id] = pp.x; });
+  const lifelineTop = top + headerH;
+  const firstRowY = lifelineTop + 34;
+  const messages = model.messages.map((msg) => ({
+    ...msg, y: firstRowY + msg.row * rowH, x1: xOf[msg.from], x2: xOf[msg.to], self: msg.from === msg.to,
+  }));
+  const lifelineBottom = firstRowY + model.messages.length * rowH + 12;
+
+  const fragments = model.fragments.map((fr) => {
+    const rows = messages.filter((mm) => mm.row >= fr.range[0] && mm.row < fr.range[1]);
+    const xs = rows.flatMap((r) => [r.x1, r.x2]).filter((v) => v != null);
+    const minX = (xs.length ? Math.min(...xs) : margin) - 26;
+    const maxX = (xs.length ? Math.max(...xs) : margin + headerW) + 26;
+    return {
+      ...fr, x: minX, w: maxX - minX,
+      y: firstRowY + fr.range[0] * rowH - 26, h: (fr.range[1] - fr.range[0]) * rowH + 30,
+      branches: fr.branches.map((b) => ({ label: b.label, y: firstRowY + b.range[0] * rowH - 14 })),
+    };
+  });
+
+  return {
+    kind: 'sequence', participants, messages, fragments, lifelineTop, lifelineBottom,
+    width: margin * 2 + headerW + Math.max(0, participants.length - 1) * gap,
+    height: lifelineBottom + 30,
+  };
+}
+
 /** Dispatch by diagram type. */
 export function layout(model, opts) {
-  return model.type === 'gantt' ? layoutGantt(model, opts) : layoutGraph(model);
+  if (model.type === 'gantt') return layoutGantt(model, opts);
+  if (model.type === 'sequence') return layoutSequence(model);
+  return layoutGraph(model);
 }
