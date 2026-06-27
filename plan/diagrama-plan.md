@@ -6,19 +6,27 @@ by dependency.
 
 ## Progress
 
-**Landed + tested (16 vitest cases, green in CI):**
-- ✅ **1a** round-trip write-back (`src/core/kdl.js`) — byte-exact emit; `setPos` is a
-  minimal diff; comments/slashdash survive. *De-risk complete.*
-- ✅ **1b** model + validation (`src/core/model.js`) — runs clean on all examples.
-- ✅ **1c** dagre layout (`src/core/layout.js`) — finite coords on real examples.
-- ✅ **gantt scheduler** (`src/core/schedule.js`, Phase 3) — earliest-start, critical
-  path, total duration, weekend-skipping dates, cycle detection.
-- 🟡 **1d/1g/1h** fabric renderer + canvas nav + embed (`src/core/render.js`,
-  `src/app/index.js`) — bundles (410 KB); `examples/preview.html` is the visual
-  harness. Runtime visual verification pending (fabric needs a browser).
+**Landed + tested (25 vitest cases, green in CI; bundle 410 KB):**
+- ✅ **1a** round-trip write-back (`kdl.js`) — byte-exact emit; `setPos` minimal diff;
+  comments/slashdash survive. *De-risk complete.*
+- ✅ **1b** model + validation (`model.js`) — clean on all examples; class members.
+- ✅ **1c** dagre layout (`layout.js`) — finite coords; class box sizing.
+- ✅ **1d** fabric renderer (`render.js`) — **runtime-verified headlessly** (jsdom +
+  stubbed ctx): family shapes (cylinder/pill/channel/box), edge decoration (ends,
+  rel=owns/refs, cardinality, glyphs), UML class compartments, gantt bars.
+- ✅ **1f** vendor-pack resolution (`packs.js`) — `vendor:service` → base+icon, all 5
+  packs. *(SVG icon assets themselves = Phase 7.)*
+- ✅ **1g** canvas nav — wheel + Ctrl+arrow zoom, background-drag pan, scroll container.
+- ✅ **1h** embed API (`app/index.js`) — `renderAll`/`renderKdl`/`load`.
+- ✅ **gantt scheduler** (`schedule.js`, Phase 3) — earliest-start, critical path,
+  total duration, weekend-skipping dates, cycle detection.
+- ✅ **persist hook** (Phase 2 core) — drag → `object:modified` → minimal KDL diff,
+  verified end-to-end. *(Save *targets* per surface still to come.)*
+- ✅ **types rendered**: system, gantt, class. pipeline renders via the graph path.
 
-**Next:** open `examples/preview.html` to eyeball the renderer; then 1e fonts (load
-+ measure), 1f icons (SVG registry + packs), edge decoration, persistence (Phase 2).
+**Next:** 1e fonts (FontFace load + real text measurement); SVG icon assets +
+remaining type renderers (sequence temporal, state); then Phase 4 IntelliJ surface.
+Open `examples/preview.html` (served) to eyeball it.
 
 ## North star
 
