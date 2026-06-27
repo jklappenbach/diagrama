@@ -184,14 +184,17 @@ function placeEnd(canvas, obj, x, y, angleDeg) {
 function nodeParts(el, n, theme) {
   const fill = el.style?.fill || theme.fill;
   const stroke = el.style?.stroke || theme.stroke;
-  const parts = shapeParts(familyOf(el.base), n.width, n.height, fill, stroke);
+  const fam = familyOf(el.base);
+  const parts = shapeParts(fam, n.width, n.height, fill, stroke);
   const sub = el.text?.slots?.subtitle?.content;
+  // cylinders carry a top cap, so center the label in the body below it (drop by ~cap depth).
+  const yOff = fam === 'storage' ? Math.min(10, n.height * 0.18) : 0;
   parts.push(new Textbox(el.label || el.id, {
-    width: n.width - 16, originX: 'center', originY: 'center', top: sub ? -8 : 0,
+    width: n.width - 16, originX: 'center', originY: 'center', top: (sub ? -8 : 0) + yOff,
     fontSize: 13, textAlign: 'center', fill: theme.text, fontFamily: 'sans-serif',
   }));
   if (sub) parts.push(new Textbox(sub, { width: n.width - 16, originX: 'center', originY: 'center',
-    top: 12, fontSize: 10, textAlign: 'center', fill: theme.muted, fontFamily: 'monospace' }));
+    top: 12 + yOff, fontSize: 10, textAlign: 'center', fill: theme.muted, fontFamily: 'monospace' }));
   if (el.kindRef) parts.push(new FabricText(el.kindRef, { originX: 'left', originY: 'top',
     left: -n.width / 2 + 6, top: -n.height / 2 + 4, fontSize: 8, fill: theme.accent }));
   return parts;
