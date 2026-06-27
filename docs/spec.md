@@ -1,4 +1,4 @@
-# diagrama — specification (v0.5)
+# diagrama — specification (v0.6)
 
 A diagramming system for **UML class, sequence, state, and system-design** diagrams,
 authored as a **KDL** document that describes *meaning, not pixels*, auto-laid-out and
@@ -137,9 +137,14 @@ A node's **shape** comes from a *family*; its **icon** picks the specific tech/r
 
 | family | base shape | `kind` values (each a distinct icon) |
 |---|---|---|
-| **compute** | rectangle | `service` · `component` · `actor` · `external` · `gateway` · `function` |
+| **compute** | rectangle | `service` · `component` · `actor` · `external` · `gateway` · `function` · `container` · `vm` |
 | **storage** | cylinder | `sql` · `kv` · `blob` · `cache` (start); extensible: `timeseries` · `graph` · `search` |
 | **messaging** | channel | `queue` · `topic` (same shape; FIFO-stack vs. fan-out icon) |
+
+**Runtime substrate** — `function` (serverless / FaaS: Lambda, Cloud Functions),
+`container` (managed containers: Fargate, Cloud Run), `vm` (unmanaged instances:
+EC2, GCE) — denote *how* compute is hosted (distinct icons signal the management
+level); `service` / `component` stay deployment-agnostic.
 
 `cache` is a normal cylinder with a **bolt icon** (in-memory cue) — no special shape.
 `datastore` remains a legacy alias for a generic (un-iconed) cylinder.
@@ -182,7 +187,8 @@ node "scorer" label="Scorer" kind="service" {
 - **Source**: a built-in registry name, or `src=` (file / URL / inline SVG).
 - **Registry**: vendor-neutral generics (`sql kv blob cache queue topic` + the
   compute set) **and a bundled vendor pack** (`redis postgres mysql dynamo s3 gcs
-  kafka sqs`, extensible). Generics are the default; vendors are opt-in by name.
+  kafka sqs lambda fargate ec2`, extensible). Generics are the default; vendors are
+  opt-in by name.
 
 **Reusable node type** — bundle base shape + icon + style under a name, then use it
 as a `kind`:
