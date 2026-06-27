@@ -41,6 +41,7 @@ describe('render smoke (headless fabric)', () => {
     'system-cajeta-layers.diagrama.kdl',
     'system-stores-icons.diagrama.kdl',
     'gantt-release-plan.diagrama.kdl',
+    'class-shapes.diagrama.kdl',
   ]) {
     it(`renders ${file} without throwing and draws objects`, () => {
       const el = document.createElement('div');

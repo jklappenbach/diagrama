@@ -3,7 +3,7 @@
 // implemented, other types draw a "not yet" placeholder so the bundle stays whole.
 
 import { Canvas, Rect, Ellipse, Circle, Textbox, Line, Polygon, FabricText, Group as FabricGroup } from 'fabric';
-import { layout } from './layout.js';
+import { layout, memberLine } from './layout.js';
 import { setPos, emit } from './kdl.js';
 
 const THEME = {
@@ -113,19 +113,9 @@ function drawGraph(canvas, model, lo, theme, opts) {
   for (const id in lo.nodes) {
     const n = lo.nodes[id];
     const el = n.el;
-    const fill = el.style?.fill || theme.fill;
-    const stroke = el.style?.stroke || theme.stroke;
-    const parts = shapeParts(familyOf(el.base), n.width, n.height, fill, stroke);
-    const title = el.label || el.id;
-    parts.push(new Textbox(title, {
-      width: n.width - 16, originX: 'center', originY: 'center', top: el.text?.slots?.subtitle ? -8 : 0,
-      fontSize: 13, textAlign: 'center', fill: theme.text, fontFamily: 'sans-serif',
-    }));
-    const sub = el.text?.slots?.subtitle?.content;
-    if (sub) parts.push(new Textbox(sub, { width: n.width - 16, originX: 'center', originY: 'center',
-      top: 12, fontSize: 10, textAlign: 'center', fill: theme.muted, fontFamily: 'monospace' }));
-    if (el.kindRef) parts.push(new FabricText(el.kindRef, { originX: 'left', originY: 'top',
-      left: -n.width / 2 + 6, top: -n.height / 2 + 4, fontSize: 8, fill: theme.accent }));
+    const parts = (el.attrs || el.methods)
+      ? classParts(el, n, theme)
+      : nodeParts(el, n, theme);
 
     const fg = makeGroup(parts, { left: n.x, top: n.y, selectable: !opts.readOnly,
       hasControls: false, hasBorders: !opts.readOnly, lockScalingX: true, lockScalingY: true, lockRotation: true });
@@ -183,6 +173,48 @@ function placeEnd(canvas, obj, x, y, angleDeg) {
   if (!obj) return;
   obj.set({ left: x, top: y, angle: angleDeg });
   canvas.add(obj);
+}
+
+/** Family-shaped node with title + optional subtitle slot + vendor badge. */
+function nodeParts(el, n, theme) {
+  const fill = el.style?.fill || theme.fill;
+  const stroke = el.style?.stroke || theme.stroke;
+  const parts = shapeParts(familyOf(el.base), n.width, n.height, fill, stroke);
+  const sub = el.text?.slots?.subtitle?.content;
+  parts.push(new Textbox(el.label || el.id, {
+    width: n.width - 16, originX: 'center', originY: 'center', top: sub ? -8 : 0,
+    fontSize: 13, textAlign: 'center', fill: theme.text, fontFamily: 'sans-serif',
+  }));
+  if (sub) parts.push(new Textbox(sub, { width: n.width - 16, originX: 'center', originY: 'center',
+    top: 12, fontSize: 10, textAlign: 'center', fill: theme.muted, fontFamily: 'monospace' }));
+  if (el.kindRef) parts.push(new FabricText(el.kindRef, { originX: 'left', originY: 'top',
+    left: -n.width / 2 + 6, top: -n.height / 2 + 4, fontSize: 8, fill: theme.accent }));
+  return parts;
+}
+
+/** UML class node: 3 compartments (name[/stereotype] · attributes · methods). */
+function classParts(el, n, theme) {
+  const w = n.width, h = n.height, hw = w / 2, hh = h / 2;
+  const STEREO = { interface: '«interface»', enum: '«enumeration»' };
+  const stereo = el.stereotype ? `«${el.stereotype}»` : STEREO[el.kind];
+  const parts = [new Rect({ width: w, height: h, originX: 'center', originY: 'center',
+    fill: el.style?.fill || theme.fill, stroke: el.style?.stroke || theme.stroke, strokeWidth: 1.4, rx: 3, ry: 3 })];
+
+  const headH = 26;
+  let y = -hh + 6;
+  if (stereo) { parts.push(new FabricText(stereo, { left: 0, top: y, originX: 'center', fontSize: 9, fill: theme.muted })); y += 11; }
+  parts.push(new FabricText(el.label || el.id, { left: 0, top: y, originX: 'center', fontSize: 13,
+    fontWeight: el.kind === 'abstract' ? 'normal' : 'bold', fontStyle: el.kind === 'abstract' ? 'italic' : 'normal', fill: theme.text }));
+
+  let dy = -hh + headH;
+  const divider = () => parts.push(new Line([-hw, dy, hw, dy], { stroke: theme.stroke, strokeWidth: 1, originX: 'center', originY: 'center' }));
+  const rows = (list, kind) => { for (const m of list || []) {
+    dy += 16;
+    parts.push(new FabricText(memberLine(m, kind), { left: -hw + 8, top: dy - 8, originX: 'left', fontSize: 11, fontFamily: 'monospace', fill: theme.text }));
+  } };
+  divider(); rows(el.attrs, 'attr');
+  dy += 6; divider(); rows(el.methods, 'method');
+  return parts;
 }
 
 function drawEdge(canvas, e, lo, theme) {

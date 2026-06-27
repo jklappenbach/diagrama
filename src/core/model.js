@@ -119,10 +119,17 @@ export function buildModel(textOrDoc, opts = {}) {
     switch (name) {
       case 'node':
       case 'step': {
+        const members = (kindName) => childrenOf(c)
+          .filter((x) => x.name.name === kindName)
+          .map((x) => ({ name: args(x)[0], ...props(x) }));
+        const attrs = members('attr');
+        const methods = members('method');
         const el = {
-          id: a[0], label: p.label, kind: p.kind, group: p.group,
+          id: a[0], label: p.label, kind: p.kind, group: p.group, stereotype: p.stereotype,
           ...resolveKind(p.kind, m.nodetypes, packs),
           style: readStyle(c), pos: readPos(c), text: readText(c), props: p,
+          attrs: attrs.length ? attrs : undefined,
+          methods: methods.length ? methods : undefined,
         };
         (name === 'step' ? m.steps : m.nodes).push(el);
         break;

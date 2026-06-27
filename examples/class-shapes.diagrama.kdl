@@ -1,0 +1,25 @@
+diagram type="class" title="Shapes — class model" theme="light" {
+    layout engine="dagre" direction="TB" spacing=55
+
+    node "shape" label="Shape" kind="abstract" {
+        attr "name" type="String" vis="#"
+        method "area" sig="(): double" vis="+"
+        method "draw" sig="(Canvas): void" vis="+"
+    }
+    node "drawable" label="Drawable" kind="interface" {
+        method "draw" sig="(Canvas): void" vis="+"
+    }
+    node "circle" label="Circle" kind="class" {
+        attr "radius" type="double" vis="-"
+        method "area" sig="(): double" vis="+"
+    }
+    node "rect" label="Rectangle" kind="class" {
+        attr "w" type="double" vis="-"
+        attr "h" type="double" vis="-"
+        method "area" sig="(): double" vis="+"
+    }
+
+    edge "circle" "shape" kind="inheritance"
+    edge "rect"   "shape" kind="inheritance"
+    edge "shape"  "drawable" kind="implementation"
+}

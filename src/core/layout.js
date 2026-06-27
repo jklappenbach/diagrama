@@ -7,7 +7,25 @@ import { schedule } from './schedule.js';
 
 const CHAR_W = 0.58; // approx glyph advance as a fraction of font size
 
+/** A class compartment line: `+ name: Type` (attr) or `+ name(args)` (method). */
+export const memberLine = (m, kind) => {
+  const vis = m.vis || '+';
+  return kind === 'attr'
+    ? `${vis} ${m.name}${m.type ? `: ${m.type}` : ''}`
+    : `${vis} ${m.name}${m.sig || '()'}`;
+};
+
 export function estimateSize(el, fontSize = 13) {
+  if (el.attrs || el.methods) { // class compartments
+    const lines = [
+      el.label || el.id,
+      ...(el.attrs || []).map((a) => memberLine(a, 'attr')),
+      ...(el.methods || []).map((mm) => memberLine(mm, 'method')),
+    ];
+    const longest = Math.max(...lines.map((s) => s.length));
+    const rows = (el.attrs?.length || 0) + (el.methods?.length || 0);
+    return { width: Math.max(150, Math.round(longest * fontSize * CHAR_W) + 24), height: 28 + rows * 16 + 12 };
+  }
   const lines = [el.label || el.title || el.id || ''];
   if (el.text?.slots?.subtitle?.content) lines.push(el.text.slots.subtitle.content);
   const longest = Math.max(...lines.map((s) => s.length));
