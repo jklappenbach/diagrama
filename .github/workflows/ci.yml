@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build + bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Bundle (esbuild -> diagrama.min.js)
+        run: npm run bundle
+
+      - name: Check bundle exists
+        run: test -s dist/diagrama.min.js
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diagrama-bundle
+          path: dist/diagrama.min.js
