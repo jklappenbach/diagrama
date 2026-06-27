@@ -4,6 +4,22 @@ Derived from [`docs/spec.md`](../docs/spec.md) (v0.9). This is the build map: ph
 deliverables, and acceptance criteria. Checked items are done; the rest are ordered
 by dependency.
 
+## Progress
+
+**Landed + tested (16 vitest cases, green in CI):**
+- ✅ **1a** round-trip write-back (`src/core/kdl.js`) — byte-exact emit; `setPos` is a
+  minimal diff; comments/slashdash survive. *De-risk complete.*
+- ✅ **1b** model + validation (`src/core/model.js`) — runs clean on all examples.
+- ✅ **1c** dagre layout (`src/core/layout.js`) — finite coords on real examples.
+- ✅ **gantt scheduler** (`src/core/schedule.js`, Phase 3) — earliest-start, critical
+  path, total duration, weekend-skipping dates, cycle detection.
+- 🟡 **1d/1g/1h** fabric renderer + canvas nav + embed (`src/core/render.js`,
+  `src/app/index.js`) — bundles (410 KB); `examples/preview.html` is the visual
+  harness. Runtime visual verification pending (fabric needs a browser).
+
+**Next:** open `examples/preview.html` to eyeball the renderer; then 1e fonts (load
++ measure), 1f icons (SVG registry + packs), edge decoration, persistence (Phase 2).
+
 ## North star
 
 One **renderer core** (`parse → load fonts → measure → schedule/layout → render`)

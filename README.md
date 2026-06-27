@@ -49,6 +49,19 @@ surface** adds Monaco + the official Apache-2.0 [`kdl-org/vscode-kdl`](https://g
 grammar/LSP. **IDE surfaces** reuse the host editor + the official KDL plugins (no editor
 built). Bundled to `diagrama.min.js`; the portable embed is renderer-only. OSS, client-only.
 
+## Develop
+
+```sh
+npm install
+npm test            # vitest: round-trip, model, scheduler, layout (16 cases)
+npm run bundle      # esbuild -> dist/diagrama.min.js
+npx vite examples   # serve, then open examples/preview.html to see the renderer
+```
+
+Core lives in `src/core/` (`kdl` write-back · `model` · `layout` · `schedule` ·
+`render`); the embed entry is `src/app/index.js`. Build map in
+[`plan/diagrama-plan.md`](plan/diagrama-plan.md).
+
 ## License
 
 MIT (TBD).

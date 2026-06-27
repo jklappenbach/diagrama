@@ -1,19 +1,40 @@
-// diagrama — renderer-core entry (stub).
-//
-// Public surface of the bundle (`Diagrama.*`). Implementation lands in Phase 1:
-// parse (@bgotink/kdl) -> model -> layout (dagre/temporal) -> render (fabric).
-// For now these are no-ops so the bundle builds and the embed API shape is fixed.
+// diagrama embed entry (spec §8.1). Public bundle surface: Diagrama.*.
+//   <div class="diagrama"></div>
+//   <script type="application/diagrama+kdl"> diagram type="system" { … } </script>
+//   <script src="diagrama.min.js"></script>
+//   <script>Diagrama.renderAll()</script>
 
-export const version = '0.0.0';
+import { buildModel } from '../core/model.js';
+import { render } from '../core/render.js';
+import { parseDoc, emit, setPos, clearPos } from '../core/kdl.js';
 
-/** Render every `<div class="diagrama">` paired with a KDL `<script>` block. */
-export function renderAll() {
-  // TODO(phase-1): query .diagrama containers, parse adjacent KDL, render.
+export const version = '0.1.0';
+
+/** Render KDL text into an element. opts forwarded to the renderer. */
+export function renderKdl(text, el, opts = {}) {
+  const model = buildModel(text);
+  return render(el, model, opts);
 }
 
-/** Load a `.diagrama.kdl` from `url` into the element matched by `selector`. */
-export async function load(/* url, selector */) {
-  // TODO(phase-1): fetch + parse + render into selector.
+/** Render every `.diagrama` container paired with a KDL `<script>` block. */
+export function renderAll(root = document) {
+  const out = [];
+  for (const el of root.querySelectorAll('.diagrama')) {
+    const script = el.querySelector('script[type="application/diagrama+kdl"]')
+      || (el.nextElementSibling?.matches?.('script[type="application/diagrama+kdl"]')
+        ? el.nextElementSibling : null);
+    const text = script?.textContent;
+    if (text) out.push(renderKdl(text, el, { readOnly: true }));
+  }
+  return out;
 }
 
-export default { version, renderAll, load };
+/** Fetch a `.diagrama.kdl` from `url` and render into `selector`. */
+export async function load(url, selector, opts = {}) {
+  const el = typeof selector === 'string' ? document.querySelector(selector) : selector;
+  const text = await (await fetch(url)).text();
+  return renderKdl(text, el, opts);
+}
+
+export { buildModel, parseDoc, emit, setPos, clearPos };
+export default { version, renderAll, renderKdl, load, buildModel };

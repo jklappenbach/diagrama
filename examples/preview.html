@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>diagrama — preview</title>
+  <style>
+    body { font: 14px system-ui, sans-serif; margin: 0; color: #1c2030; }
+    header { display: flex; gap: 12px; align-items: center; padding: 10px 14px;
+             border-bottom: 1px solid #e2e5ee; background: #fafbfe; }
+    header strong { font-size: 15px; }
+    select, button { font: inherit; padding: 4px 8px; }
+    #stage { height: calc(100vh - 52px); width: 100vw; }
+    .hint { color: #6b7185; font-size: 12px; margin-left: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>diagrama</strong>
+    <select id="pick"></select>
+    <button id="zin">＋</button>
+    <button id="zout">－</button>
+    <button id="reset">100%</button>
+    <span class="hint">wheel / Ctrl+↑↓ = zoom · drag background = pan</span>
+  </header>
+  <div id="stage" class="diagrama"></div>
+
+  <!-- built bundle: run `npm run bundle` first, and serve over http (fetch needs it) -->
+  <script src="../dist/diagrama.min.js"></script>
+  <script>
+    const examples = [
+      'system-cajeta-layers.diagrama.kdl',
+      'system-stores-icons.diagrama.kdl',
+      'gantt-release-plan.diagrama.kdl',
+      'pipeline-build-deploy.diagrama.kdl',
+      'sequence-distributed-chat.diagrama.kdl',
+    ];
+    const pick = document.getElementById('pick');
+    const stage = document.getElementById('stage');
+    examples.forEach((e) => pick.add(new Option(e, e)));
+
+    let ctl;
+    async function show(file) {
+      if (ctl) ctl.destroy();
+      ctl = await Diagrama.load('./' + file, '#stage');
+    }
+    pick.onchange = () => show(pick.value);
+    document.getElementById('zin').onclick = () => ctl && ctl.zoomIn();
+    document.getElementById('zout').onclick = () => ctl && ctl.zoomOut();
+    document.getElementById('reset').onclick = () => ctl && ctl.reset();
+    show(examples[0]);
+  </script>
+</body>
+</html>
