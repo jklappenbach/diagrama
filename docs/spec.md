@@ -1,4 +1,4 @@
-# diagrama — specification (v0.8)
+# diagrama — specification (v0.9)
 
 A **diagramming system for software development** — software and systems architecture,
 production and delivery management — authored as a **KDL** document that describes
@@ -543,8 +543,9 @@ diagrama/
 
 ## 10. Open questions
 
-1. **First surface to ship** — VS Code preview (cheapest, reuses IDE editor) vs the
-   standalone browser app. Lean: renderer core → VS Code preview.
+1. **First surface to ship** — **Decided: IntelliJ preview** (the primary IDE here;
+   like VS Code it reuses the host editor + the official `intellij-kdl` plugin, so we
+   ship only the preview). Build: renderer core → IntelliJ. VS Code follows later.
 2. **`@bgotink/kdl` write-back fidelity** — verify comment/slashdash/order preservation
    across a drag round-trip early (the de-risk spike).
 3. **LSP in-browser** — bundle the vscode-kdl LSP (web worker) for the browser app, or

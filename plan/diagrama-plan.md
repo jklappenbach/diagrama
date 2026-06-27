@@ -1,6 +1,6 @@
 # diagrama — implementation plan
 
-Derived from [`docs/spec.md`](../docs/spec.md) (v0.8). This is the build map: phases,
+Derived from [`docs/spec.md`](../docs/spec.md) (v0.9). This is the build map: phases,
 deliverables, and acceptance criteria. Checked items are done; the rest are ordered
 by dependency.
 
@@ -18,16 +18,17 @@ Phase 0  repo + CI ✓
 Phase 1  renderer core, proven end-to-end on ONE type (system)
 Phase 2  persistence / always-save write-back
 Phase 3  remaining types (sequence · class · state · pipeline · gantt)
-Phase 4  VS Code preview  ── first real surface (reuses IDE editor)
+Phase 4  IntelliJ plugin (JCEF)  ── first real surface (your daily IDE)
 Phase 5  standalone browser editor (Monaco + serve)
-Phase 6  IntelliJ plugin (JCEF)
+Phase 6  VS Code preview
 Phase 7  vendor-pack generation + SVG pipeline (full catalogs)
 Phase 8  KDL schema + LSP polish
 ```
 
 Rationale: prove the whole pipeline on the richest vocabulary (`system`, which has
-examples) before fanning out to types or surfaces. VS Code first because it reuses the
-host editor — cheapest path to a usable tool (spec §8.2, §10 Q1).
+examples) before fanning out to types or surfaces. **IntelliJ first** — it's the daily
+IDE here, and (like VS Code) it reuses the host editor + the official `intellij-kdl`
+plugin, so we ship only the preview, not a text editor (spec §8.3, §10 Q1).
 
 ---
 
@@ -112,21 +113,29 @@ One slice per type; each reuses primitives + layout + text.
 
 ---
 
-## Phase 4 — VS Code preview (`packages/vscode`) — spec §8.2
-- [ ] Extension: preview webview running the core, side-by-side, refresh on edit (MD pattern).
-- [ ] Reuse `vscode-kdl` for editor grammar/LSP (bundled/attributed in `vendor/`).
-- [ ] Upgrade: `CustomTextEditorProvider` posting drags back (Phase 2 write-back).
-- **Accept:** open a `.diagrama.kdl`, see live preview; (upgrade) drag persists to doc.
+## Phase 4 — IntelliJ plugin (`packages/intellij`) — spec §8.3  ── first surface
+- [ ] `FileEditorProvider` for `*.diagrama.kdl` → [ text | JCEF preview ] split (the
+      built-in Markdown plugin's shape).
+- [ ] JCEF (Chromium) runs the core; the text half gets KDL grammar/hints from the
+      official `intellij-kdl` plugin (no editor built).
+- [ ] Refresh the preview on document change; map JCEF resource loading to the core bundle.
+- [ ] Upgrade: edit-in-place — JCEF posts drags back to the PSI/document (Phase 2 write-back).
+- **Accept:** open a `.diagrama.kdl`, get the split editor with live preview; (upgrade)
+  a drag in the preview persists a minimal diff to the document.
+
+> Packaging note: ship as a JetBrains plugin (works across IDEA / CLion / PyCharm —
+> matches the C++/Python/JVM mix here). JCEF ships with the JetBrains runtime.
 
 ## Phase 5 — standalone browser editor (`packages/web`) — spec §8.4
 - [ ] Monaco + `vscode-kdl` TextMate grammar; two-way sync (edit↔render; drag→pos).
 - [ ] `diagrama serve` (local `PUT /<file>`) and/or File System Access API.
 - **Accept:** edit text → re-render; drag → file saved; round-trips cleanly.
 
-## Phase 6 — IntelliJ plugin (`packages/intellij`) — spec §8.3
-- [ ] `FileEditorProvider` for `*.diagrama.kdl` → [ text | JCEF preview ] split.
-- [ ] JCEF runs the core; edit-in-place posts drags to the PSI/document.
-- **Accept:** split editor shows live preview; (upgrade) drag write-back.
+## Phase 6 — VS Code preview (`packages/vscode`) — spec §8.2  (later)
+- [ ] Extension: preview webview running the core, side-by-side, refresh on edit (MD pattern).
+- [ ] Reuse `vscode-kdl` for editor grammar/LSP (bundled/attributed in `vendor/`).
+- [ ] Upgrade: `CustomTextEditorProvider` posting drags back (Phase 2 write-back).
+- **Accept:** open a `.diagrama.kdl`, see live preview; (upgrade) drag persists to doc.
 
 ## Phase 7 — vendor packs + SVG pipeline (`packs/`) — spec §5.5, `packs/README.md`
 - [ ] Build script: ingest each vendor's official icon library → full `map` rows + SVGs.

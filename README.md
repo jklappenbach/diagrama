@@ -9,7 +9,7 @@ Code and IntelliJ, and a **standalone browser editor** — and edits (typing the
 dragging a shape) are written back **format-preservingly** and **always saved**.
 
 > **Status: active design.** Format + architecture in [`docs/spec.md`](docs/spec.md)
-> (v0.8); build map in [`plan/diagrama-plan.md`](plan/diagrama-plan.md). Implementation starting.
+> (v0.9); build map in [`plan/diagrama-plan.md`](plan/diagrama-plan.md). Implementation starting.
 
 ## Why
 
