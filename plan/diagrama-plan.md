@@ -145,8 +145,10 @@ One slice per type; each reuses primitives + layout + text.
 - [x] Edit-in-place: drag → `onPersist` → `JBCefJSQuery` → `WriteCommandAction`
       `Document.setText` (minimal diff via format-preserving write-back).
 - [x] `build-intellij-bundle.sh` copies the core bundle into plugin resources.
-- [ ] **Verify in a running sandbox IDE** (`./gradlew runIde`) — needs the IntelliJ SDK
-      download; Kotlin not yet compiled here. *(scaffold complete, runtime-unverified)*
+- [x] **IntelliJ Platform Gradle Plugin 2.17.0** (Gradle 9.6 wrapper, JDK 21 daemon);
+      Kotlin **compiles clean against the 2024.1 SDK** (verified locally).
+- [ ] **Verify in a running sandbox IDE** (`./gradlew runIde`) — JCEF needs a display.
+      *(compiles; runtime-unverified)*
 - **Accept:** open a `.diagrama.kdl`, get the split editor with live preview; a drag in
   the preview persists a minimal diff to the document.
 
