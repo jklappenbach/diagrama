@@ -404,14 +404,16 @@ topologically ordered, scheduled earliest-start, and the **critical path** and t
   with **arrows to the tasks it depends on**, arranged by *gravitational affinity*
   (below). For reasoning about structure, and for **editing dependencies by dragging**.
 
-**Color (calendar).** A `palette` is **8 colors as two complementary halves** (warm /
-cool). Tasks **alternate halves by dependency depth**, so a parent and child get
-*complementary* colors; within a half, overlapping tasks are greedily given **different**
-colors so each reads uniquely in its time slot. A task's **dependencies are shown as
-recessed color swatches on its left edge** — each swatch is the *body color of a task it
-depends on* — so you trace a chain by matching swatch→body color, and parent↔child
-contrast makes the link pop (no arrows needed). Palette is `earth`, `pastel`, `neon`,
-or user-defined (`palette { color "#…"; … }`, split in half); default `pastel`.
+**Color (calendar).** A `palette` is **10 colors as two complementary halves of 5**
+(warm / cool). Tasks **alternate halves task-by-task down the chain**, so a parent and
+child get *complementary* colors; within a half, colors cycle so consecutive tasks vary,
+and overlapping tasks never collide — each reads uniquely in its time slot. A task's
+**dependencies are shown as a fixed-width color band on its left edge** (subdivided
+among the dependencies), each segment the *body color of a task it depends on* — so you
+trace a chain by matching band→body color, and parent↔child contrast makes it pop (no
+arrows). Bars use a configurable **black outline** (`palette … outline="#…"`); the
+critical path is a **thicker** border. Palette is `earth`, `pastel`, `neon`, or
+user-defined (`palette { color "#…"; … }`, split in half); default `pastel`.
 
 **Lanes.** Declared `lane`s win. With **none declared they are derived** from the graph:
 a task with a **single dependent keeps that dependent on its lane** (chains stay on one
