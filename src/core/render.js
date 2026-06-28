@@ -145,6 +145,12 @@ function resolveEnds(el) {
     case 'subscribes': toEnd = 'open'; break;
     case 'onfailure': toEnd = 'arrow'; dashed = true; break;
     case 'manual': toEnd = 'open'; dashed = true; glyph = glyph || 'manual'; break;
+    // UML class relationships (spec §5.1)
+    case 'inheritance': toEnd = 'triangle'; break;
+    case 'implementation': toEnd = 'triangle'; dashed = true; break;
+    case 'aggregation': fromEnd = 'diamond'; toEnd = 'none'; break;
+    case 'composition': fromEnd = 'filled-diamond'; toEnd = 'none'; break;
+    case 'association': toEnd = 'none'; break;
     default: break;
   }
   if (el?.rel === 'owns') { fromEnd = 'filled-diamond'; toEnd = 'open'; }
@@ -158,10 +164,12 @@ function resolveEnds(el) {
 
 function makeEnd(kind, color, s = 8) {
   const tri = [{ x: 0, y: 0 }, { x: -s, y: -s * 0.55 }, { x: -s, y: s * 0.55 }];
+  const big = [{ x: 0, y: 0 }, { x: -1.5 * s, y: -s * 0.9 }, { x: -1.5 * s, y: s * 0.9 }];
   const dia = [{ x: 0, y: 0 }, { x: -s, y: -s * 0.6 }, { x: -2 * s, y: 0 }, { x: -s, y: s * 0.6 }];
   const base = { originX: 'center', originY: 'center', selectable: false, evented: false };
   switch (kind) {
     case 'arrow': return new Polygon(tri, { ...base, fill: color });
+    case 'triangle': return new Polygon(big, { ...base, fill: '#fff', stroke: color, strokeWidth: 1.4 }); // UML generalization
     case 'open': return new Polygon(tri, { ...base, fill: 'transparent', stroke: color, strokeWidth: 1.4 });
     case 'diamond': return new Polygon(dia, { ...base, fill: '#fff', stroke: color, strokeWidth: 1.4 });
     case 'filled-diamond': return new Polygon(dia, { ...base, fill: color });

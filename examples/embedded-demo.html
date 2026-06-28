@@ -11,22 +11,24 @@
     section { padding: 10px 18px 26px; }
     h2 { font-size: 14px; margin: 16px 0 2px; }
     .cap { color: #6b7185; font-size: 12px; margin: 0 0 8px; }
-    .diagrama { height: 420px; border: 1px solid #e2e5ee; border-radius: 6px; }
+    .stage { height: 420px; border: 1px solid #e2e5ee; border-radius: 6px; }
+    .panel { border: 1px solid #e2e5ee; border-radius: 6px; }
     #err { color: #b00020; white-space: pre-wrap; font: 13px monospace; padding: 0 18px; }
   </style>
 </head>
 <body>
   <header>
     <h1>diagrama — everything it can do</h1>
-    <p>Six diagram types from KDL. Wheel / Ctrl+↑↓ to zoom, drag the background to pan.</p>
+    <p>Six diagram types + gantt schedule/organize/list/detail views, from KDL.
+      Wheel / Ctrl+↑↓ to zoom, drag the background to pan.</p>
   </header>
   <div id="err"></div>
 
   <section>
     <h2>system — shapes · icons · edges</h2>
     <p class="cap">family shapes (compute rect, storage cylinder, messaging parallelogram, network pill),
-      group kinds (boundary/cluster/zone borders), and edge decoration (owns ◆, refs dashed, cardinality, glyph).</p>
-    <div class="diagrama"><script type="application/diagrama+kdl">
+      group kinds (boundary/cluster/zone borders), edge decoration (owns ◆, refs dashed, cardinality, glyph).</p>
+    <div class="diagrama stage"><script type="application/diagrama+kdl">
 diagram type="system" title="System design" theme="light" {
     layout engine="dagre" direction="TB" spacing=46
     group "fw"  label="Framework" kind="boundary" { member "primavera" }
@@ -52,49 +54,56 @@ diagram type="system" title="System design" theme="light" {
   </section>
 
   <section>
-    <h2>gantt (calendar) — schedule · colors · dependency bands</h2>
+    <h2>gantt — calendar view</h2>
     <p class="cap">hours granularity, auto-derived swimlanes, complementary palette (parent/child contrast),
-      and a narrow vertical band per dependency (its parent's color). Critical path = bold border.</p>
-    <div class="diagrama"><script type="application/diagrama+kdl">
-diagram type="gantt" title="Release plan" mode="calendar" {
-    calendar start="2026-07-01" unit="hour" hours-per-day=8 workweek="mon-fri"
-    palette "earth" outline="#000"
-    start "start" label="Start"
-    task "spec"  title="Spec"        cost=16 { deps "start" }
-    task "api"   title="Build API"   cost=40 { deps "spec" }
-    task "ui"    title="Build UI"    cost=32 { deps "spec" }
-    task "infra" title="Infra"       cost=12 { deps "start" }
-    task "integ" title="Integration" cost=20 { deps "api" "ui" "infra" }
-    task "uat"   title="UAT"         cost=24 { deps "integ" }
-    task "ga"    title="GA"          cost=4  { deps "uat" }
-}
-    </script></div>
+      a narrow color band per dependency. Critical path = bold border.</p>
+    <div id="g-cal" class="stage"></div>
+
+    <h2>gantt — organize view (mode="timeless")</h2>
+    <p class="cap">same tasks as a dependency graph: nodes gravitate by depth (deps to the left),
+      arrows point each task → its dependency.</p>
+    <div id="g-org" class="stage"></div>
+
+    <h2>gantt — task list view</h2>
+    <p class="cap">the schedule as a table (start/end computed; critical marked).</p>
+    <div id="g-list" class="panel"></div>
+
+    <h2>gantt — task detail view</h2>
+    <p class="cap">one task's full detail (dependencies, what it blocks, ticket, notes).</p>
+    <div id="g-detail" class="panel"></div>
   </section>
 
   <section>
-    <h2>class — UML compartments</h2>
-    <p class="cap">3-compartment boxes (name/«stereotype», attributes, methods); inheritance/implementation edges.</p>
-    <div class="diagrama"><script type="application/diagrama+kdl">
-diagram type="class" title="Shapes" theme="light" {
-    layout engine="dagre" direction="TB" spacing=50
-    node "shape" label="Shape" kind="abstract" {
-        attr "name" type="String" vis="#"
-        method "area" sig="(): double" vis="+"
+    <h2>class — the full UML primitive set</h2>
+    <p class="cap">all node kinds (class / «interface» / «enum» / <i>abstract</i>) and all relationship
+      kinds (inheritance, implementation, association, aggregation, composition, dependency) with multiplicity.</p>
+    <div class="diagrama stage"><script type="application/diagrama+kdl">
+diagram type="class" title="UML primitives together" theme="light" {
+    layout engine="dagre" direction="TB" spacing=46
+    node "entity" label="Entity" kind="abstract" {
+        attr "id" type="UUID" vis="#"
+        method "validate" sig="(): bool" vis="+"
     }
-    node "drawable" label="Drawable" kind="interface" {
-        method "draw" sig="(Canvas): void" vis="+"
+    node "persistable" label="Persistable" kind="interface" {
+        method "save" sig="(): void" vis="+"
     }
-    node "circle" label="Circle" kind="class" {
-        attr "radius" type="double" vis="-"
-        method "area" sig="(): double" vis="+"
+    node "status" label="Status" kind="enum" {
+        attr "ACTIVE" vis="+"
+        attr "CLOSED" vis="+"
     }
-    node "rect" label="Rectangle" kind="class" {
-        attr "w" type="double" vis="-"
-        attr "h" type="double" vis="-"
+    node "order" label="Order" kind="class" {
+        attr "total" type="Money" vis="-"
+        method "place" sig="(): void" vis="+"
     }
-    edge "circle" "shape" kind="inheritance"
-    edge "rect"   "shape" kind="inheritance"
-    edge "shape"  "drawable" kind="implementation"
+    node "line" label="OrderLine" kind="class" { attr "qty" type="int" vis="-" }
+    node "customer" label="Customer" kind="class" { attr "name" type="String" vis="-" }
+    node "address" label="Address" kind="class" { attr "city" type="String" vis="-" }
+    edge "order"    "entity"      kind="inheritance"
+    edge "order"    "persistable" kind="implementation"
+    edge "order"    "status"      kind="dependency"
+    edge "order"    "line"        kind="composition" from-card="1" to-card="1..*"
+    edge "customer" "order"       kind="association"  from-card="1" to-card="0..*"
+    edge "customer" "address"     kind="aggregation"  from-card="1" to-card="1..*"
 }
     </script></div>
   </section>
@@ -102,7 +111,7 @@ diagram type="class" title="Shapes" theme="light" {
   <section>
     <h2>state — state machine</h2>
     <p class="cap">initial/final/choice pseudo-states, rounded states, transitions with trigger [guard] / action.</p>
-    <div class="diagrama"><script type="application/diagrama+kdl">
+    <div class="diagrama stage"><script type="application/diagrama+kdl">
 diagram type="state" title="Order lifecycle" theme="light" {
     layout engine="dagre" direction="TB" spacing=42
     node "i"     kind="initial"
@@ -126,7 +135,7 @@ diagram type="state" title="Order lifecycle" theme="light" {
   <section>
     <h2>sequence — temporal</h2>
     <p class="cap">participants + lifelines, messages in document order (sync/async/return/self), an alt fragment with branches.</p>
-    <div class="diagrama"><script type="application/diagrama+kdl">
+    <div class="diagrama stage"><script type="application/diagrama+kdl">
 diagram type="sequence" title="Send a message" theme="light" {
     participant "client" label="Client"     kind="actor"
     participant "edge"   label="Edge"        kind="object"
@@ -152,8 +161,8 @@ diagram type="sequence" title="Send a message" theme="light" {
   <section>
     <h2>pipeline (CI/CD)</h2>
     <p class="cap">steps shaped by role (trigger/source/build/test/approval/deploy), stages as groups,
-      outcome-routed edges (flow/onsuccess/manual), tool icons via packs.</p>
-    <div class="diagrama"><script type="application/diagrama+kdl">
+      outcome-routed edges (flow/onsuccess/manual).</p>
+    <div class="diagrama stage"><script type="application/diagrama+kdl">
 diagram type="pipeline" title="Build -> deploy" theme="light" {
     layout engine="dagre" direction="LR" spacing=48
     group "ci" label="CI"       kind="process"
@@ -175,12 +184,28 @@ diagram type="pipeline" title="Build -> deploy" theme="light" {
 
   <script src="../dist/diagrama.min.js"></script>
   <script>
+    const GANTT = `diagram type="gantt" title="Release plan" mode="calendar" {
+    calendar start="2026-07-01" unit="hour" hours-per-day=8 workweek="mon-fri"
+    palette "earth" outline="#000"
+    start "start" label="Start"
+    task "spec"  title="Spec"        cost=16 ticket="JIRA-1200" { desc "Endpoints + schema"; deps "start" }
+    task "api"   title="Build API"   cost=40 ticket="JIRA-1234" { deps "spec" }
+    task "ui"    title="Build UI"    cost=32 ticket="JIRA-1240" { deps "spec" }
+    task "infra" title="Infra"       cost=12 ticket="JIRA-1250" { deps "start" }
+    task "integ" title="Integration" cost=20 ticket="JIRA-1260" { deps "api" "ui" "infra" }
+    task "uat"   title="UAT"         cost=24 ticket="JIRA-1270" { deps "integ" }
+    task "ga"    title="GA"          cost=4  ticket="JIRA-1299" { deps "uat" }
+}`;
     window.addEventListener('error', (e) => {
       document.getElementById('err').textContent = 'JS error: ' + (e.message || e);
     });
     try {
       if (!window.Diagrama) throw new Error('diagrama.min.js not loaded — run `npm run bundle` at the repo root first.');
       Diagrama.renderAll();
+      Diagrama.renderKdl(GANTT, document.getElementById('g-cal'), { readOnly: true });
+      Diagrama.renderKdl(GANTT.replace('mode="calendar"', 'mode="timeless"'), document.getElementById('g-org'), { readOnly: true });
+      Diagrama.renderTaskList(GANTT, document.getElementById('g-list'));
+      Diagrama.renderTaskDetail(GANTT, document.getElementById('g-detail'), 'integ');
     } catch (e) {
       document.getElementById('err').textContent = String(e && e.stack || e);
     }
