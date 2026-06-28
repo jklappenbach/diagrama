@@ -54,6 +54,40 @@ diagram type="system" title="System design" theme="light" {
   </section>
 
   <section>
+    <h2>system — shape gallery (every family &amp; subtype)</h2>
+    <p class="cap">compute = rectangle, storage = cylinder, messaging = parallelogram, network = pill.
+      Vendor packs resolve <code>vendor:service</code> to the right base shape (badge top-left;
+      real vendor SVG logos are the next step).</p>
+    <div class="diagrama stage"><script type="application/diagrama+kdl">
+diagram type="system" title="Shape gallery" theme="light" {
+    layout engine="dagre" direction="LR" spacing=26
+    group "compute"   label="compute (rectangle)"      kind="boundary" { member "service"; member "function"; member "container"; member "vm"; member "gateway"; member "awsl"; member "gcr" }
+    group "storage"   label="storage (cylinder)"       kind="boundary" { member "sql"; member "kv"; member "blob"; member "cache" }
+    group "messaging" label="messaging (parallelogram)" kind="boundary" { member "queue"; member "topic" }
+    group "network"   label="network (pill)"           kind="boundary" { member "lb"; member "cdn"; member "dns"; member "firewall"; member "waf" }
+    node "service"   label="service"   kind="service"   group="compute"
+    node "function"  label="function"  kind="function"  group="compute"
+    node "container" label="container" kind="container" group="compute"
+    node "vm"        label="vm"         kind="vm"        group="compute"
+    node "gateway"   label="gateway"    kind="gateway"   group="compute"
+    node "awsl"      label="Ingest"     kind="aws:lambda"   group="compute"
+    node "gcr"       label="Worker"     kind="gcp:cloudrun" group="compute"
+    node "sql"   label="sql"   kind="sql"   group="storage"
+    node "kv"    label="kv"    kind="kv"    group="storage"
+    node "blob"  label="blob"  kind="blob"  group="storage"
+    node "cache" label="cache" kind="cache" group="storage"
+    node "queue" label="queue" kind="queue" group="messaging"
+    node "topic" label="topic" kind="topic" group="messaging"
+    node "lb"       label="lb"       kind="lb"       group="network"
+    node "cdn"      label="cdn"      kind="cdn"      group="network"
+    node "dns"      label="dns"      kind="dns"      group="network"
+    node "firewall" label="firewall" kind="firewall" group="network"
+    node "waf"      label="waf"      kind="waf"      group="network"
+}
+    </script></div>
+  </section>
+
+  <section>
     <h2>gantt — calendar view</h2>
     <p class="cap">hours granularity, auto-derived swimlanes, complementary palette (parent/child contrast),
       a narrow color band per dependency. Critical path = bold border.</p>

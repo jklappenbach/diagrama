@@ -101,7 +101,11 @@ export function layoutGraph(model) {
     edges.push({ from: ed.v, to: ed.w, points: e.points, el: e.el });
   }
   const gg = g.graph();
-  return { kind: 'graph', nodes, groups, edges, width: gg.width, height: gg.height };
+  // canvas bounds from actual node/group extents (covers pinned `pos` beyond dagre's bounds)
+  let width = gg.width || 0, height = gg.height || 0;
+  for (const id in nodes) { const n = nodes[id]; width = Math.max(width, n.x + n.width / 2 + 24); height = Math.max(height, n.y + n.height / 2 + 24); }
+  for (const id in groups) { const r = groups[id]; width = Math.max(width, r.x + r.width / 2 + 24); height = Math.max(height, r.y + r.height / 2 + 24); }
+  return { kind: 'graph', nodes, groups, edges, width, height };
 }
 
 /** Longest-path depth of each task from the start root (id -> depth). */
