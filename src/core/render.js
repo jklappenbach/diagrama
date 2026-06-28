@@ -247,24 +247,24 @@ function isoMonitor(cx, cy, stroke) {
   return p;
 }
 
-/** Original "person at a desk": back panel + counter with a figure peeking over.
- *  cap=true → police cap (guard / cop); else a receptionist / maître d'. */
+/** Original "person at a desk": just the counter (no back wall) with a figure seated
+ *  at the RIGHT end, angled to look right-and-down (+x iso). cap=true → cop, else maître d'. */
 function isoDeskFigure(cx, cy, stroke, cap) {
   const fill = ISO.fill;
-  const panel = isoBox(cx, cy - 7, 22, 3, 26, fill, ISO.top, stroke);
-  const counter = isoBox(cx, cy, 24, 16, 11, fill, ISO.top, stroke);
-  const rx = cx - 5, ry = cy - 5, hy = ry - 20;
+  const counter = isoBox(cx, cy, 24, 13, 11, fill, ISO.top, stroke);
+  const px = cx + 12, base = cy - 5, hy = base - 13; // seated off to the right, head above the desk
   const person = [
-    new Polygon([{ x: rx - 5, y: ry - 16 }, { x: rx + 5, y: ry - 16 }, { x: rx + 4, y: ry - 9 }, { x: rx - 4, y: ry - 9 }], { fill, stroke, strokeWidth: 1, selectable: false, evented: false }), // shoulders
-    new Circle({ left: rx, top: hy, radius: 4.5, fill, stroke, strokeWidth: 1, originX: 'center', originY: 'center', selectable: false, evented: false }), // head
-    new Circle({ left: rx, top: ry - 13, radius: 1.2, fill: ISO.accent, originX: 'center', originY: 'center', selectable: false, evented: false }), // badge/tie
+    new Polygon([{ x: px - 4, y: base - 11 }, { x: px + 7, y: base - 9 }, { x: px + 6, y: base }, { x: px - 3, y: base - 1 }], // torso leaning right
+      { fill, stroke, strokeWidth: 1, selectable: false, evented: false }),
+    new Circle({ left: px, top: hy, radius: 4.5, fill, stroke, strokeWidth: 1, originX: 'center', originY: 'center', selectable: false, evented: false }), // head
+    new Circle({ left: px + 3, top: hy + 2, radius: 1, fill: ISO.accent, originX: 'center', originY: 'center', selectable: false, evented: false }), // face/gaze → right-down
   ];
-  if (cap) { // police cap
-    person.push(new Polygon([{ x: rx - 5, y: hy - 3 }, { x: rx + 5, y: hy - 3 }, { x: rx + 4, y: hy - 7 }, { x: rx - 4, y: hy - 7 }], { fill, stroke, strokeWidth: 1, selectable: false, evented: false }));
-    person.push(new Line([rx - 6, hy - 2, rx + 6, hy - 2], { stroke, strokeWidth: 1.2, selectable: false, evented: false }));
-    person.push(new Circle({ left: rx, top: hy - 5, radius: 1, fill: ISO.accent, originX: 'center', originY: 'center', selectable: false, evented: false }));
+  if (cap) { // police cap, brim toward the right
+    person.push(new Polygon([{ x: px - 4, y: hy - 3 }, { x: px + 5, y: hy - 3 }, { x: px + 4, y: hy - 7 }, { x: px - 3, y: hy - 7 }], { fill, stroke, strokeWidth: 1, selectable: false, evented: false }));
+    person.push(new Line([px - 5, hy - 2, px + 8, hy - 2], { stroke, strokeWidth: 1.2, selectable: false, evented: false }));
+    person.push(new Circle({ left: px - 1, top: hy - 5, radius: 1, fill: ISO.accent, originX: 'center', originY: 'center', selectable: false, evented: false }));
   }
-  return [...panel.parts, ...person, ...counter.parts]; // counter last → figure peeks over it
+  return [...counter.parts, ...person]; // figure seated at the right, on/behind the counter
 }
 
 /** Original line-art iso sprite per component (no copyrighted artwork). */
