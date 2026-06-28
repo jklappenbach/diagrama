@@ -12,8 +12,45 @@ const THEME = {
 };
 const GROUP_DASH = { boundary: [], zone: [], process: [6, 4], cluster: [2, 4],
                      workflow: [8, 3, 2, 3], network: [4, 4] };
-// vendor brand colors for the corner badge (real logo SVGs are a follow-up)
+// vendor brand colors for the corner badge
 const VENDOR_COLOR = { aws: '#ff9900', gcp: '#4285f4', azure: '#0078d4', cf: '#f38020', ci: '#5b6470' };
+
+// service name -> category, so a vendor badge can show a category glyph without loading packs.
+const SERVICE_CATEGORY = {
+  lambda: 'function', cloudfunctions: 'function', functions: 'function', workers: 'function',
+  ec2: 'vm', gce: 'vm', vm: 'vm',
+  fargate: 'container', ecs: 'container', eks: 'container', cloudrun: 'container', aks: 'container', gke: 'container', containerinstances: 'container', containerapps: 'container',
+  s3: 'blob', ebs: 'blob', efs: 'blob', gcs: 'blob', blobstorage: 'blob', r2: 'blob',
+  dynamodb: 'kv', firestore: 'kv', datastore: 'kv', bigtable: 'kv', cosmosdb: 'kv', tablestorage: 'kv', durableobjects: 'kv',
+  rds: 'sql', aurora: 'sql', redshift: 'sql', cloudsql: 'sql', spanner: 'sql', bigquery: 'sql', sqldatabase: 'sql', synapse: 'sql', d1: 'sql',
+  elasticache: 'cache', memorydb: 'cache', memorystore: 'cache', cacheforredis: 'cache', hyperdrive: 'cache',
+  sqs: 'queue', cloudtasks: 'queue', queuestorage: 'queue', queues: 'queue', mq: 'queue',
+  sns: 'topic', kinesis: 'topic', eventbridge: 'topic', pubsub: 'topic', eventhubs: 'topic', eventgrid: 'topic', servicebus: 'topic', msk: 'topic',
+  cloudfront: 'cdn', cloudcdn: 'cdn', frontdoor: 'cdn',
+  route53: 'dns', clouddns: 'dns',
+  alb: 'lb', nlb: 'lb', cloudloadbalancing: 'lb', loadbalancer: 'lb', loadbalancing: 'lb', applicationgateway: 'lb',
+};
+
+/** Original, simple category glyph (NOT a vendor logo), centered at (cx,cy), in `color`. */
+function iconGlyph(cat, cx, cy, color, s) {
+  const o = { selectable: false, evented: false, originX: 'center', originY: 'center' };
+  const at = (dx, dy, x) => ({ ...o, left: cx + dx, top: cy + dy, ...x });
+  const bolt = [{ x: 0.5 * s, y: -s }, { x: -0.7 * s, y: 0.1 * s }, { x: -0.05 * s, y: 0.1 * s }, { x: -0.5 * s, y: s }, { x: 0.7 * s, y: -0.1 * s }, { x: 0.05 * s, y: -0.1 * s }];
+  switch (cat) {
+    case 'function': case 'cache': return [new Polygon(bolt, at(0, 0, { fill: color }))];
+    case 'queue': return [-1, 0, 1].map((i) => new Rect(at(i * s * 0.72, 0, { width: s * 0.36, height: s * 1.8, fill: color })));
+    case 'sql': case 'kv': return [
+      new Ellipse(at(0, -s * 0.62, { rx: s * 0.9, ry: s * 0.32, fill: color })),
+      new Rect(at(0, 0, { width: s * 1.8, height: s * 1.1, fill: color })),
+      new Ellipse(at(0, s * 0.55, { rx: s * 0.9, ry: s * 0.32, fill: color })),
+    ];
+    case 'blob': return [new Polygon([{ x: -s, y: -0.7 * s }, { x: s, y: -0.7 * s }, { x: 0.7 * s, y: 0.8 * s }, { x: -0.7 * s, y: 0.8 * s }], at(0, 0, { fill: color }))];
+    case 'topic': case 'cdn': return [new Polygon([{ x: 0, y: -s }, { x: s, y: 0.6 * s }, { x: -s, y: 0.6 * s }], at(0, 0, { fill: color }))];
+    case 'container': return [new Rect(at(0, -s * 0.5, { width: s * 1.7, height: s * 0.7, fill: color })), new Rect(at(0, s * 0.5, { width: s * 1.7, height: s * 0.7, fill: color }))];
+    case 'lb': return [new Polygon([{ x: 0, y: -s }, { x: s, y: 0 }, { x: 0, y: s }, { x: -s, y: 0 }], at(0, 0, { fill: color }))];
+    default: return [new Rect(at(0, 0, { width: s * 1.6, height: s * 1.6, rx: 1, fill: color }))]; // compute/vm/service chip
+  }
+}
 
 // base kind -> shape family (spec §5.4)
 const FAMILY = {};
@@ -254,14 +291,12 @@ function nodeParts(el, n, theme) {
   }));
   if (sub) parts.push(new Textbox(sub, { width: n.width - 16, originX: 'center', originY: 'center',
     top: 12 + yOff, fontSize: 10, textAlign: 'center', fill: theme.muted, fontFamily: 'monospace' }));
-  if (el.kindRef) { // vendor badge chip (top-left) — colored by vendor, labelled by service
-    const label = el.service || el.kindRef;
-    const cw = label.length * 4.6 + 8;
-    const cx = -n.width / 2 + 6 + cw / 2, cy = -n.height / 2 + 9;
-    parts.push(new Rect({ left: cx, top: cy, width: cw, height: 13, rx: 3, ry: 3, originX: 'center', originY: 'center',
+  if (el.kindRef) { // vendor badge: brand-colored chip + an original category glyph (no official logos)
+    const cat = el.base || SERVICE_CATEGORY[el.service] || 'service';
+    const bx = -n.width / 2 + 12, by = -n.height / 2 + 12;
+    parts.push(new Rect({ left: bx, top: by, width: 17, height: 17, rx: 4, ry: 4, originX: 'center', originY: 'center',
       fill: VENDOR_COLOR[el.vendor] || theme.accent, selectable: false, evented: false }));
-    parts.push(new FabricText(label, { left: cx, top: cy, originX: 'center', originY: 'center',
-      fontSize: 8, fill: '#fff', fontFamily: 'sans-serif', selectable: false, evented: false }));
+    for (const g of iconGlyph(cat, bx, by, '#fff', 4)) parts.push(g);
   }
   return parts;
 }
