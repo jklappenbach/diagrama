@@ -12,6 +12,8 @@ const THEME = {
 };
 const GROUP_DASH = { boundary: [], zone: [], process: [6, 4], cluster: [2, 4],
                      workflow: [8, 3, 2, 3], network: [4, 4] };
+// vendor brand colors for the corner badge (real logo SVGs are a follow-up)
+const VENDOR_COLOR = { aws: '#ff9900', gcp: '#4285f4', azure: '#0078d4', cf: '#f38020', ci: '#5b6470' };
 
 // base kind -> shape family (spec §5.4)
 const FAMILY = {};
@@ -22,7 +24,7 @@ for (const k of ['lb', 'cdn', 'dns', 'firewall', 'waf', 'proxy', 'vpn', 'nat', '
 const familyOf = (base) => FAMILY[base] || 'compute';
 
 /** Shape parts (centered at origin) for a node family — boxes/cylinders/pills/channels. */
-function shapeParts(family, w, h, fill, stroke) {
+function shapeParts(family, base, w, h, fill, stroke) {
   const common = { fill, stroke, strokeWidth: 0.75, originX: 'center', originY: 'center' };
   if (family === 'storage') {
     // cylinder. Body is an OPEN path (sides + curved bottom, NO top edge), so nothing is
@@ -35,7 +37,7 @@ function shapeParts(family, w, h, fill, stroke) {
       new Ellipse({ ...common, fill, rx, ry, top: cyTop }),       // opaque cap (fill + stroke), drawn over
     ];
   }
-  if (family === 'network') return [new Rect({ ...common, width: w, height: h, rx: h / 2, ry: h / 2 })];
+  if (family === 'network') return networkShape(base, w, h, common, fill, stroke);
   if (family === 'messaging') {
     // parallelogram (reads as flow/stream); topic vs queue differ by icon. No overlay.
     const sk = Math.min(h * 0.4, 14);
@@ -45,6 +47,45 @@ function shapeParts(family, w, h, fill, stroke) {
     ], common)];
   }
   return [new Rect({ ...common, width: w, height: h, rx: 7, ry: 7 })];
+}
+
+/** Per-kind geometric shapes for the network family (industry-conventional). */
+function networkShape(base, w, h, common, fill, stroke) {
+  const ln = (pts) => new Line(pts, { stroke, strokeWidth: 0.6, originX: 'center', originY: 'center', selectable: false, evented: false });
+  switch (base) {
+    case 'lb': // load balancer — diamond (distributes traffic)
+      return [new Polygon([{ x: 0, y: -h / 2 }, { x: w / 2, y: 0 }, { x: 0, y: h / 2 }, { x: -w / 2, y: 0 }], common)];
+    case 'firewall': { // brick wall
+      const parts = [new Rect({ ...common, width: w, height: h, rx: 2, ry: 2 })];
+      const rows = 3, rh = h / rows;
+      for (let i = 1; i < rows; i++) parts.push(ln([-w / 2, -h / 2 + i * rh, w / 2, -h / 2 + i * rh]));
+      for (let r = 0; r < rows; r++) {
+        const off = (r % 2) ? w / 4 : w / 2;
+        for (let x = -w / 2 + off; x < w / 2 - 1; x += w / 2) parts.push(ln([x, -h / 2 + r * rh, x, -h / 2 + (r + 1) * rh]));
+      }
+      return parts;
+    }
+    case 'waf': { // shield
+      const sw = w * 0.6, t = -h / 2 + 1, b = h / 2 - 1;
+      return [new Path(`M ${-sw / 2} ${t} L ${sw / 2} ${t} L ${sw / 2} ${t + h * 0.4} Q ${sw / 2} ${b} 0 ${b} Q ${-sw / 2} ${b} ${-sw / 2} ${t + h * 0.4} Z`, { ...common })];
+    }
+    case 'cdn': { // globe — ellipse + meridians
+      const rx = w / 2, ry = h / 2;
+      return [new Ellipse({ ...common, rx, ry }), new Ellipse({ ...common, rx: rx * 0.42, ry, fill: 'transparent' }), ln([-rx, 0, rx, 0])];
+    }
+    case 'dns':
+    case 'mesh':
+    case 'proxy': // hexagon
+      return [new Polygon([
+        { x: -w / 2 + w * 0.16, y: -h / 2 }, { x: w / 2 - w * 0.16, y: -h / 2 }, { x: w / 2, y: 0 },
+        { x: w / 2 - w * 0.16, y: h / 2 }, { x: -w / 2 + w * 0.16, y: h / 2 }, { x: -w / 2, y: 0 },
+      ], common)];
+    case 'router':
+    case 'nat': // round
+      return [new Ellipse({ ...common, rx: w / 2, ry: h / 2 })];
+    default: // pill (vpn, endpoint, …)
+      return [new Rect({ ...common, width: w, height: h, rx: h / 2, ry: h / 2 })];
+  }
 }
 
 /**
@@ -203,7 +244,7 @@ function nodeParts(el, n, theme) {
   const fill = el.style?.fill || theme.fill;
   const stroke = el.style?.stroke || theme.stroke;
   const fam = familyOf(el.base);
-  const parts = shapeParts(fam, n.width, n.height, fill, stroke);
+  const parts = shapeParts(fam, el.base, n.width, n.height, fill, stroke);
   const sub = el.text?.slots?.subtitle?.content;
   // cylinders carry a top cap, so center the label in the body below it (drop by ~cap depth).
   const yOff = fam === 'storage' ? Math.min(10, n.height * 0.18) : 0;
@@ -213,8 +254,15 @@ function nodeParts(el, n, theme) {
   }));
   if (sub) parts.push(new Textbox(sub, { width: n.width - 16, originX: 'center', originY: 'center',
     top: 12 + yOff, fontSize: 10, textAlign: 'center', fill: theme.muted, fontFamily: 'monospace' }));
-  if (el.kindRef) parts.push(new FabricText(el.kindRef, { originX: 'left', originY: 'top',
-    left: -n.width / 2 + 6, top: -n.height / 2 + 4, fontSize: 8, fill: theme.accent }));
+  if (el.kindRef) { // vendor badge chip (top-left) — colored by vendor, labelled by service
+    const label = el.service || el.kindRef;
+    const cw = label.length * 4.6 + 8;
+    const cx = -n.width / 2 + 6 + cw / 2, cy = -n.height / 2 + 9;
+    parts.push(new Rect({ left: cx, top: cy, width: cw, height: 13, rx: 3, ry: 3, originX: 'center', originY: 'center',
+      fill: VENDOR_COLOR[el.vendor] || theme.accent, selectable: false, evented: false }));
+    parts.push(new FabricText(label, { left: cx, top: cy, originX: 'center', originY: 'center',
+      fontSize: 8, fill: '#fff', fontFamily: 'sans-serif', selectable: false, evented: false }));
+  }
   return parts;
 }
 

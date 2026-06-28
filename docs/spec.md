@@ -141,7 +141,7 @@ A node's **shape** comes from a *family*; its **icon** picks the specific tech/r
 | **compute** | rectangle | `service` · `component` · `actor` · `external` · `gateway` · `function` · `container` · `vm` |
 | **storage** | cylinder | `sql` · `kv` · `blob` · `cache` (start); extensible: `timeseries` · `graph` · `search` |
 | **messaging** | channel | `queue` · `topic` (same shape; FIFO-stack vs. fan-out icon) |
-| **network** | pill | `lb` · `cdn` · `dns` · `firewall` · `waf` · `proxy` · `vpn` · `nat` · `router` · `mesh` · `endpoint` |
+| **network** | per-kind | `lb` (diamond) · `cdn` (globe) · `dns`/`proxy`/`mesh` (hexagon) · `firewall` (brick wall) · `waf` (shield) · `router`/`nat` (circle) · `vpn`/`endpoint` (pill) — industry-conventional shapes |
 
 **Runtime substrate** — `function` (serverless / FaaS: Lambda, Cloud Functions),
 `container` (managed containers: Fargate, Cloud Run), `vm` (unmanaged instances:

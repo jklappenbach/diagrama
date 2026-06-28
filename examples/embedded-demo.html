@@ -88,6 +88,46 @@ diagram type="system" title="Shape gallery" theme="light" {
   </section>
 
   <section>
+    <h2>system — a real request path</h2>
+    <p class="cap">client → CDN (static) and → API gateway → load balancer → web cluster;
+      web tier uses a Redis cache + Postgres, and fans work out to a queue/worker.
+      Vendor nodes carry a colored vendor badge.</p>
+    <div class="diagrama stage"><script type="application/diagrama+kdl">
+diagram type="system" title="Web app — request path" theme="light" {
+    layout engine="dagre" direction="TB" spacing=44
+    node "client" label="Client"      kind="actor"
+    node "cdn"    label="CDN"          kind="cdn"
+    node "gw"     label="API gateway"  kind="gateway"
+    node "waf"    label="WAF"          kind="waf"
+    node "lb"     label="Load balancer" kind="lb"
+    group "web" label="Web cluster" kind="cluster" { member "w1"; member "w2"; member "w3" }
+    node "w1" label="web-1" kind="aws:ec2" group="web"
+    node "w2" label="web-2" kind="aws:ec2" group="web"
+    node "w3" label="web-3" kind="aws:ec2" group="web"
+    node "redis" label="Session cache" kind="cache"
+    node "db"    label="Postgres"      kind="sql"
+    node "q"     label="jobs"          kind="queue"
+    node "worker" label="Worker"       kind="aws:fargate"
+    node "dns"   label="Route 53"      kind="dns"
+    edge "client" "dns" kind="dependency" label="resolve"
+    edge "client" "cdn" kind="dataflow"   label="static assets"
+    edge "client" "gw"  kind="sync"       label="api" glyph="lock"
+    edge "gw"     "waf" kind="dataflow"
+    edge "waf"    "lb"  kind="dataflow"
+    edge "lb"     "w1"  kind="dataflow"
+    edge "lb"     "w2"  kind="dataflow"
+    edge "lb"     "w3"  kind="dataflow"
+    edge "w1"     "redis" rel="refs"
+    edge "w1"     "db"    rel="owns" from-card="1" to-card="N"
+    edge "w2"     "db"    kind="dependency"
+    edge "w1"     "q"     kind="publishes"
+    edge "q"      "worker" kind="subscribes"
+    edge "worker" "db"    kind="dependency"
+}
+    </script></div>
+  </section>
+
+  <section>
     <h2>gantt — calendar view</h2>
     <p class="cap">hours granularity, auto-derived swimlanes, complementary palette (parent/child contrast),
       a narrow color band per dependency. Critical path = bold border.</p>
