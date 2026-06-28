@@ -334,23 +334,20 @@ function drawGantt(canvas, model, lo, theme) {
   canvas.add(star(starX, starY, 9, theme.accent));
 
   const unitLetter = lo.unit === 'hour' ? 'h' : 'd';
+  const outline = model.palette?.outline || '#000';
+  const bandW = 4;
   for (const bar of lo.bars) {
-    const stripW = bar.depColors && bar.depColors.length ? 12 : 0;
+    const nb = bar.depColors ? bar.depColors.length : 0;
+    const stripW = nb * bandW;
     canvas.add(new Rect({ left: bar.x, top: bar.y, width: bar.width, height: bar.height,
       rx: 4, ry: 4, fill: bar.color || '#e6edfb',
-      stroke: bar.critical ? theme.critical : 'rgba(0,0,0,0.35)', strokeWidth: bar.critical ? 2 : 1,
+      stroke: bar.critical ? theme.critical : outline, strokeWidth: bar.critical ? 2 : 1,
       selectable: false, evented: false }));
-    // recessed dependency swatch(es): the body color of each task this one depends on
-    if (stripW) {
-      const sh = (bar.height - 4) / bar.depColors.length;
-      bar.depColors.forEach((c, i) => {
-        const sx = bar.x + 2, sy = bar.y + 2 + i * sh;
-        canvas.add(new Rect({ left: sx, top: sy, width: 8, height: sh - 1, rx: 1, ry: 1, fill: c,
-          stroke: 'rgba(0,0,0,0.45)', strokeWidth: 0.75, selectable: false, evented: false }));
-        canvas.add(new Line([sx + 8, sy, sx + 8, sy + sh - 1], // light inner edge -> recessed look
-          { stroke: 'rgba(255,255,255,0.65)', strokeWidth: 0.75, selectable: false, evented: false }));
-      });
-    }
+    // narrow vertical dependency band(s): the body color of each task this one depends on
+    bar.depColors && bar.depColors.forEach((c, i) => {
+      canvas.add(new Rect({ left: bar.x + 1 + i * bandW, top: bar.y + 1, width: bandW, height: bar.height - 2,
+        fill: c, selectable: false, evented: false }));
+    });
     const lbl = `${bar.task.title || bar.task.id}${bar.task.cost ? ` (${bar.task.cost}${unitLetter})` : ''}`;
     canvas.add(new FabricText(lbl, { left: bar.x + stripW + 6, top: bar.y + bar.height / 2, originY: 'center',
       fontSize: 10, fill: '#1c2030', selectable: false, evented: false }));

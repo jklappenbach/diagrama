@@ -2,55 +2,176 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>diagrama — embedded demo (works from file://)</title>
+  <title>diagrama — full demo (works from file://)</title>
   <style>
-    body { font: 14px system-ui, sans-serif; margin: 0; }
-    h2 { margin: 14px; font-size: 15px; }
-    .diagrama { height: 460px; border: 1px solid #e2e5ee; margin: 0 14px 24px; }
-    #err { color: #b00020; white-space: pre-wrap; font: 13px monospace; margin: 14px; }
+    body { font: 14px system-ui, sans-serif; margin: 0; color: #1c2030; }
+    header { padding: 14px 18px; border-bottom: 1px solid #e2e5ee; background: #fafbfe; }
+    header h1 { font-size: 16px; margin: 0 0 2px; }
+    header p { margin: 0; color: #6b7185; font-size: 12px; }
+    section { padding: 10px 18px 26px; }
+    h2 { font-size: 14px; margin: 16px 0 2px; }
+    .cap { color: #6b7185; font-size: 12px; margin: 0 0 8px; }
+    .diagrama { height: 420px; border: 1px solid #e2e5ee; border-radius: 6px; }
+    #err { color: #b00020; white-space: pre-wrap; font: 13px monospace; padding: 0 18px; }
   </style>
 </head>
 <body>
-  <h2>diagrama embedded demo — no server needed (KDL is inlined, no fetch)</h2>
+  <header>
+    <h1>diagrama — everything it can do</h1>
+    <p>Six diagram types from KDL. Wheel / Ctrl+↑↓ to zoom, drag the background to pan.</p>
+  </header>
   <div id="err"></div>
 
-  <h2>system</h2>
-  <div class="diagrama">
-    <script type="application/diagrama+kdl">
-diagram type="system" title="Cajeta layers" theme="light" {
-    layout engine="dagre" direction="TB" spacing=50
-    group "g-fw"  label="Framework" kind="boundary" { member "primavera" }
-    group "g-lib" label="Libraries" kind="cluster"  { member "http"; member "cluster" }
-    group "g-std" label="Stdlib"    kind="zone"     { member "ionet" }
-    node "primavera" label="primavera"   kind="service"
-    node "http"      label="cajeta-http" kind="service" group="g-lib"
-    node "cluster"   label="cajeta-cluster" kind="service" group="g-lib"
-    node "ionet"     label="cajeta.io.net" kind="service" group="g-std"
-    node "store"     label="Session store" kind="cache"
-    node "events"    label="events"        kind="topic"
-    edge "primavera" "http"    kind="dependency" label="web"
-    edge "primavera" "cluster" rel="owns" to-card="N"
-    edge "http"      "ionet"   kind="dependency"
-    edge "cluster"   "store"   rel="refs" line="dashed"
-    edge "cluster"   "events"  kind="publishes"
-    }
-    </script>
-  </div>
+  <section>
+    <h2>system — shapes · icons · edges</h2>
+    <p class="cap">family shapes (compute rect, storage cylinder, messaging parallelogram, network pill),
+      group kinds (boundary/cluster/zone borders), and edge decoration (owns ◆, refs dashed, cardinality, glyph).</p>
+    <div class="diagrama"><script type="application/diagrama+kdl">
+diagram type="system" title="System design" theme="light" {
+    layout engine="dagre" direction="TB" spacing=46
+    group "fw"  label="Framework" kind="boundary" { member "primavera" }
+    group "lib" label="Libraries" kind="cluster"  { member "http"; member "cluster" }
+    group "std" label="Stdlib"    kind="zone"     { member "ionet" }
+    node "lb"        label="Edge LB"        kind="lb"
+    node "primavera" label="primavera"      kind="service"
+    node "http"      label="cajeta-http"    kind="service" group="lib"
+    node "cluster"   label="cajeta-cluster" kind="service" group="lib"
+    node "ionet"     label="cajeta.io.net"  kind="service" group="std"
+    node "db"        label="Orders DB"      kind="sql"
+    node "store"     label="Session store"  kind="cache"
+    node "events"    label="events"         kind="topic"
+    edge "lb"        "primavera" kind="dataflow"
+    edge "primavera" "http"      kind="dependency" label="web"
+    edge "primavera" "cluster"   rel="owns" to-card="N"
+    edge "primavera" "db"        rel="owns" from-card="1" to-card="N" glyph="lock"
+    edge "cluster"   "store"     rel="refs" line="dashed"
+    edge "http"      "ionet"     kind="dependency"
+    edge "cluster"   "events"    kind="publishes"
+}
+    </script></div>
+  </section>
 
-  <h2>gantt</h2>
-  <div class="diagrama">
-    <script type="application/diagrama+kdl">
-diagram type="gantt" title="Plan" mode="calendar" {
+  <section>
+    <h2>gantt (calendar) — schedule · colors · dependency bands</h2>
+    <p class="cap">hours granularity, auto-derived swimlanes, complementary palette (parent/child contrast),
+      and a narrow vertical band per dependency (its parent's color). Critical path = bold border.</p>
+    <div class="diagrama"><script type="application/diagrama+kdl">
+diagram type="gantt" title="Release plan" mode="calendar" {
     calendar start="2026-07-01" unit="hour" hours-per-day=8 workweek="mon-fri"
-    palette "earth"                          // lanes auto-derived; colors + dep swatches
+    palette "earth" outline="#000"
     start "start" label="Start"
-    task "spec" title="Spec" cost=16 { deps "start" }
-    task "api"  title="API"  cost=40 { deps "spec" }
-    task "ui"   title="UI"   cost=32 { deps "spec" }
-    task "integ" title="Integration" cost=16 { deps "api" "ui" }
+    task "spec"  title="Spec"        cost=16 { deps "start" }
+    task "api"   title="Build API"   cost=40 { deps "spec" }
+    task "ui"    title="Build UI"    cost=32 { deps "spec" }
+    task "infra" title="Infra"       cost=12 { deps "start" }
+    task "integ" title="Integration" cost=20 { deps "api" "ui" "infra" }
+    task "uat"   title="UAT"         cost=24 { deps "integ" }
+    task "ga"    title="GA"          cost=4  { deps "uat" }
+}
+    </script></div>
+  </section>
+
+  <section>
+    <h2>class — UML compartments</h2>
+    <p class="cap">3-compartment boxes (name/«stereotype», attributes, methods); inheritance/implementation edges.</p>
+    <div class="diagrama"><script type="application/diagrama+kdl">
+diagram type="class" title="Shapes" theme="light" {
+    layout engine="dagre" direction="TB" spacing=50
+    node "shape" label="Shape" kind="abstract" {
+        attr "name" type="String" vis="#"
+        method "area" sig="(): double" vis="+"
     }
-    </script>
-  </div>
+    node "drawable" label="Drawable" kind="interface" {
+        method "draw" sig="(Canvas): void" vis="+"
+    }
+    node "circle" label="Circle" kind="class" {
+        attr "radius" type="double" vis="-"
+        method "area" sig="(): double" vis="+"
+    }
+    node "rect" label="Rectangle" kind="class" {
+        attr "w" type="double" vis="-"
+        attr "h" type="double" vis="-"
+    }
+    edge "circle" "shape" kind="inheritance"
+    edge "rect"   "shape" kind="inheritance"
+    edge "shape"  "drawable" kind="implementation"
+}
+    </script></div>
+  </section>
+
+  <section>
+    <h2>state — state machine</h2>
+    <p class="cap">initial/final/choice pseudo-states, rounded states, transitions with trigger [guard] / action.</p>
+    <div class="diagrama"><script type="application/diagrama+kdl">
+diagram type="state" title="Order lifecycle" theme="light" {
+    layout engine="dagre" direction="TB" spacing=42
+    node "i"     kind="initial"
+    node "cart"  label="Cart"   kind="state"
+    node "paid"  label="Paid"   kind="state"
+    node "ck"    kind="choice"
+    node "ship"  label="Shipped" kind="state"
+    node "cancel" label="Cancelled" kind="state"
+    node "f"     kind="final"
+    edge "i"    "cart" kind="transition"
+    edge "cart" "paid" kind="transition" trigger="pay" guard="funds ok"
+    edge "paid" "ck"   kind="transition"
+    edge "ck"   "ship" kind="transition" guard="in stock" action="reserve"
+    edge "ck"   "cancel" kind="transition" guard="out of stock"
+    edge "ship" "f"    kind="transition" trigger="delivered"
+    edge "cancel" "f"  kind="transition"
+}
+    </script></div>
+  </section>
+
+  <section>
+    <h2>sequence — temporal</h2>
+    <p class="cap">participants + lifelines, messages in document order (sync/async/return/self), an alt fragment with branches.</p>
+    <div class="diagrama"><script type="application/diagrama+kdl">
+diagram type="sequence" title="Send a message" theme="light" {
+    participant "client" label="Client"     kind="actor"
+    participant "edge"   label="Edge"        kind="object"
+    participant "owner"  label="Topic owner" kind="control"
+    participant "log"    label="Topic log"   kind="entity"
+    message "client" "edge"  kind="sync" label="send(room, msg)"
+    message "edge"   "owner" kind="sync" label="route(room)"
+    message "owner"  "owner" kind="self" label="resolve subscribers"
+    fragment kind="alt" label="channel size" {
+        branch label="small -> push" {
+            message "owner" "client" kind="async" label="deliver"
+        }
+        branch label="huge -> log" {
+            message "owner" "log"    kind="async" label="append"
+            message "log"   "client" kind="async" label="stream"
+        }
+    }
+    message "owner" "edge" kind="return" label="ack"
+}
+    </script></div>
+  </section>
+
+  <section>
+    <h2>pipeline (CI/CD)</h2>
+    <p class="cap">steps shaped by role (trigger/source/build/test/approval/deploy), stages as groups,
+      outcome-routed edges (flow/onsuccess/manual), tool icons via packs.</p>
+    <div class="diagrama"><script type="application/diagrama+kdl">
+diagram type="pipeline" title="Build -> deploy" theme="light" {
+    layout engine="dagre" direction="LR" spacing=48
+    group "ci" label="CI"       kind="process"
+    group "cd" label="Delivery" kind="workflow"
+    step "t"    kind="trigger"  on="pr"       label="PR opened"
+    step "src"  kind="source"   group="ci"    label="Checkout"
+    step "b"    kind="build"    group="ci"    label="Build"
+    step "test" kind="test"     group="ci"    label="Unit + lint"
+    step "appr" kind="approval" group="cd"    label="Promote?"
+    step "dep"  kind="deploy"   group="cd"    label="Deploy prod"
+    edge "t" "src" kind="flow"
+    edge "src" "b" kind="flow"
+    edge "b" "test" kind="flow"
+    edge "test" "appr" kind="onsuccess"
+    edge "appr" "dep"  kind="manual"
+}
+    </script></div>
+  </section>
 
   <script src="../dist/diagrama.min.js"></script>
   <script>

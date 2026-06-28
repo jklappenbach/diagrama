@@ -113,7 +113,10 @@ export function buildModel(textOrDoc, opts = {}) {
     } else if (name === 'text' && args(c).length === 0) {
       m.textDefault = props(c);
     } else if (name === 'palette') {
-      m.palette = { name: args(c)[0], colors: childrenOf(c).filter((x) => x.name.name === 'color').map((x) => args(x)[0]) };
+      m.palette = {
+        name: args(c)[0], outline: props(c).outline,
+        colors: childrenOf(c).filter((x) => x.name.name === 'color').map((x) => args(x)[0]),
+      };
     }
   }
 
