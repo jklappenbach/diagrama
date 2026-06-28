@@ -457,9 +457,9 @@ function drawSequence(canvas, model, lo, theme) {
         strokeDashArray: ret ? [5, 4] : [], selectable: false, evented: false }));
       placeEnd(canvas, makeEnd(msg.kind === 'async' || ret ? 'open' : 'arrow', theme.stroke),
         msg.x2, msg.y, msg.x2 >= msg.x1 ? 0 : 180);
-      if (msg.label) canvas.add(new FabricText(msg.label, { left: (msg.x1 + msg.x2) / 2, top: msg.y - 12,
-        originX: 'center', fontSize: 10, fill: theme.text, backgroundColor: theme.bg,
-        selectable: false, evented: false }));
+      // label floats above the line (no opaque plate, so it doesn't gap the lifelines)
+      if (msg.label) canvas.add(new FabricText(msg.label, { left: (msg.x1 + msg.x2) / 2, top: msg.y - 14,
+        originX: 'center', fontSize: 10, fill: theme.text, selectable: false, evented: false }));
     }
   }
 }

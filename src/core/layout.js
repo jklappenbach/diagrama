@@ -78,6 +78,7 @@ export function layoutGraph(model) {
   }
   const items = model.type === 'pipeline' ? model.steps : model.nodes; // pipeline nodes are `step`s
   for (const n of items) {
+    if (n.group && !parentOf[n.id]) parentOf[n.id] = n.group; // also honor `group=` on the node
     g.setNode(n.id, { ...estimateSize(n), el: n });
     if (parentOf[n.id] && g.hasNode(parentOf[n.id])) g.setParent(n.id, parentOf[n.id]);
   }
@@ -101,10 +102,16 @@ export function layoutGraph(model) {
     edges.push({ from: ed.v, to: ed.w, points: e.points, el: e.el });
   }
   const gg = g.graph();
-  // canvas bounds from actual node/group extents (covers pinned `pos` beyond dagre's bounds)
-  let width = gg.width || 0, height = gg.height || 0;
-  for (const id in nodes) { const n = nodes[id]; width = Math.max(width, n.x + n.width / 2 + 24); height = Math.max(height, n.y + n.height / 2 + 24); }
-  for (const id in groups) { const r = groups[id]; width = Math.max(width, r.x + r.width / 2 + 24); height = Math.max(height, r.y + r.height / 2 + 24); }
+  // canvas bounds from actual node/group extents (covers pinned `pos`; NaN-guarded so an
+  // empty/unsized group can't poison the total).
+  let width = Number.isFinite(gg.width) ? gg.width : 0;
+  let height = Number.isFinite(gg.height) ? gg.height : 0;
+  const ext = (o) => {
+    if (Number.isFinite(o.x) && Number.isFinite(o.width)) width = Math.max(width, o.x + o.width / 2 + 24);
+    if (Number.isFinite(o.y) && Number.isFinite(o.height)) height = Math.max(height, o.y + o.height / 2 + 24);
+  };
+  for (const id in nodes) ext(nodes[id]);
+  for (const id in groups) ext(groups[id]);
   return { kind: 'graph', nodes, groups, edges, width, height };
 }
 
