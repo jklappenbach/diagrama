@@ -404,12 +404,14 @@ topologically ordered, scheduled earliest-start, and the **critical path** and t
   with **arrows to the tasks it depends on**, arranged by *gravitational affinity*
   (below). For reasoning about structure, and for **editing dependencies by dragging**.
 
-**Color (calendar).** A `palette` gives one color per swimlane's worth of concurrency;
-overlapping tasks are greedily assigned **different** colors, so every task reads
-uniquely in its time slot. A task's **dependencies are shown as recessed color swatches
-on its left edge** — each swatch is the *body color of a task it depends on*, so you
-trace a chain by matching swatch→body color (no arrows needed). Palette is `earth`,
-`pastel`, `neon`, or user-defined; default `pastel`.
+**Color (calendar).** A `palette` is **8 colors as two complementary halves** (warm /
+cool). Tasks **alternate halves by dependency depth**, so a parent and child get
+*complementary* colors; within a half, overlapping tasks are greedily given **different**
+colors so each reads uniquely in its time slot. A task's **dependencies are shown as
+recessed color swatches on its left edge** — each swatch is the *body color of a task it
+depends on* — so you trace a chain by matching swatch→body color, and parent↔child
+contrast makes the link pop (no arrows needed). Palette is `earth`, `pastel`, `neon`,
+or user-defined (`palette { color "#…"; … }`, split in half); default `pastel`.
 
 **Lanes.** Declared `lane`s win. With **none declared they are derived** from the graph:
 a task with a **single dependent keeps that dependent on its lane** (chains stay on one

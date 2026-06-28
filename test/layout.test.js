@@ -59,6 +59,11 @@ describe('layout on real examples', () => {
     expect(lane('api')).not.toBe(lane('ui'));  // spec branches -> api/ui on different lanes
     expect(lo.bars.every((b) => b.color)).toBe(true);
     expect(lo.bars.find((b) => b.task.id === 'integ').depColors).toHaveLength(2);
+    // parent/child alternate complementary halves -> different colors
+    const color = (id) => lo.bars.find((b) => b.task.id === id).color;
+    const parity = (id) => lo.bars.find((b) => b.task.id === id).parity;
+    expect(parity('spec')).not.toBe(parity('api'));   // depth parity flips parent->child
+    expect(color('spec')).not.toBe(color('api'));
   });
 
   it('lays out the pipeline example as a graph', () => {

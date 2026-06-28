@@ -138,7 +138,18 @@ export function layoutGantt(model, opts = {}) {
     });
   });
 
-  // Per-task interval colors, then resolve each task's dependency colors for the swatch.
+  // Dependency depth (longest path from start) -> parity picks the complementary half.
+  const taskById = {};
+  model.tasks.forEach((t) => { taskById[t.id] = t; });
+  const depth = { [startId]: 0 };
+  for (const id of s.order) {
+    if (id === startId) continue;
+    const ds = taskById[id]?.deps || [];
+    depth[id] = 1 + Math.max(0, ...ds.map((d) => depth[d] ?? 0));
+  }
+  bars.forEach((b) => { b.parity = (depth[b.task.id] || 0) % 2; });
+
+  // Per-task colors (complementary by depth), then resolve dependency colors for the swatch.
   colorBars(bars, resolvePalette(model));
   const colorById = {};
   bars.forEach((b) => { colorById[b.task.id] = b.color; });
