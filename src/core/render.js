@@ -106,9 +106,13 @@ function networkShape(base, w, h, common, fill, stroke) {
       const sw = w * 0.6, t = -h / 2 + 1, b = h / 2 - 1;
       return [new Path(`M ${-sw / 2} ${t} L ${sw / 2} ${t} L ${sw / 2} ${t + h * 0.4} Q ${sw / 2} ${b} 0 ${b} Q ${-sw / 2} ${b} ${-sw / 2} ${t + h * 0.4} Z`, { ...common })];
     }
-    case 'cdn': { // globe — ellipse + meridians
+    case 'cdn': { // globe — outline + two latitude lines, center kept clear for the label
       const rx = w / 2, ry = h / 2;
-      return [new Ellipse({ ...common, rx, ry }), new Ellipse({ ...common, rx: rx * 0.42, ry, fill: 'transparent' }), ln([-rx, 0, rx, 0])];
+      return [
+        new Ellipse({ ...common, rx, ry }),
+        ln([-rx * 0.78, -ry * 0.5, rx * 0.78, -ry * 0.5]),
+        ln([-rx * 0.78, ry * 0.5, rx * 0.78, ry * 0.5]),
+      ];
     }
     case 'dns':
     case 'mesh':
