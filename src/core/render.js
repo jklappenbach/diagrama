@@ -75,6 +75,8 @@ export function render(container, model, opts = {}) {
 
   if (lo.cycle) {
     drawPlaceholder(canvas, theme, `dependency cycle: ${lo.cycle.join(' → ')}`, contentW);
+  } else if (lo.kind === 'gantt-graph') {
+    drawGanttGraph(canvas, model, lo, theme);
   } else if (lo.kind === 'gantt') {
     drawGantt(canvas, model, lo, theme);
   } else if (lo.kind === 'sequence') {
@@ -427,6 +429,28 @@ function drawSequence(canvas, model, lo, theme) {
         originX: 'center', fontSize: 10, fill: theme.text, backgroundColor: theme.bg,
         selectable: false, evented: false }));
     }
+  }
+}
+
+// gantt "organize" (timeless) view: task nodes + arrows to dependencies.
+function drawGanttGraph(canvas, model, lo, theme) {
+  const outline = model.palette?.outline || '#000';
+  const unitLetter = lo.unit === 'hour' ? 'h' : 'd';
+  for (const e of lo.edges) {
+    const a = lo.nodes[e.from], b = lo.nodes[e.to];
+    if (!a || !b) continue;
+    const p = borderPoint(a, b), q = borderPoint(b, a);
+    canvas.add(new Line([p.x, p.y, q.x, q.y], { stroke: theme.muted, strokeWidth: 1.2, selectable: false, evented: false }));
+    placeEnd(canvas, makeEnd('arrow', theme.muted, 7), q.x, q.y, (Math.atan2(q.y - p.y, q.x - p.x) * 180) / Math.PI);
+  }
+  for (const id in lo.nodes) {
+    const n = lo.nodes[id];
+    if (n.isStart) { canvas.add(star(n.x, n.y, 11, theme.accent)); continue; }
+    canvas.add(new Rect({ left: n.x, top: n.y, width: n.width, height: n.height, originX: 'center', originY: 'center',
+      rx: 5, ry: 5, fill: n.color || theme.fill, stroke: outline, strokeWidth: 1.2, selectable: false, evented: false }));
+    const t = n.task;
+    canvas.add(new FabricText(`${t.title || t.id}${t.cost ? ` (${t.cost}${unitLetter})` : ''}`,
+      { left: n.x, top: n.y, originX: 'center', originY: 'center', fontSize: 11, fill: '#1c2030', selectable: false, evented: false }));
   }
 }
 

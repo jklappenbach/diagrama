@@ -6,6 +6,7 @@
 
 import { buildModel } from '../core/model.js';
 import { render } from '../core/render.js';
+import { renderTaskList, renderTaskDetail } from '../core/views.js';
 import { parseDoc, emit, setPos, clearPos } from '../core/kdl.js';
 
 export const version = '0.1.0';
@@ -36,5 +37,5 @@ export async function load(url, selector, opts = {}) {
   return renderKdl(text, el, opts);
 }
 
-export { buildModel, parseDoc, emit, setPos, clearPos };
-export default { version, renderAll, renderKdl, load, buildModel };
+export { buildModel, parseDoc, emit, setPos, clearPos, renderTaskList, renderTaskDetail };
+export default { version, renderAll, renderKdl, load, buildModel, renderTaskList, renderTaskDetail };

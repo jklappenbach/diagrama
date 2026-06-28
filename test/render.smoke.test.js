@@ -32,9 +32,9 @@ beforeAll(() => {
 });
 
 describe('render smoke (headless fabric)', () => {
-  let renderKdl, buildModel, renderAll;
+  let renderKdl, buildModel, renderAll, renderTaskList, renderTaskDetail;
   beforeAll(async () => {
-    ({ renderKdl, buildModel, renderAll } = await import('../src/app/index.js'));
+    ({ renderKdl, buildModel, renderAll, renderTaskList, renderTaskDetail } = await import('../src/app/index.js'));
   });
 
   for (const file of [
@@ -53,6 +53,35 @@ describe('render smoke (headless fabric)', () => {
       ctl.destroy();
     });
   }
+
+  it('renders the organize (timeless) gantt as a dependency graph', () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const ctl = renderKdl(`diagram type="gantt" mode="timeless" {
+      palette "earth"
+      task "a" cost=8 { deps "start" }
+      task "b" cost=8 { deps "a" }
+      task "c" cost=8 { deps "a" }
+    }`, el, { readOnly: true });
+    expect(ctl.canvas.getObjects().length).toBeGreaterThan(0);
+    ctl.destroy();
+  });
+
+  it('renders task list + task detail HTML', () => {
+    const src = `diagram type="gantt" {
+      calendar start="2026-07-01" unit="hour" hours-per-day=8
+      task "a" title="Alpha" cost=8 ticket="T-1" { deps "start" }
+      task "b" title="Beta" cost=8 { deps "a" }
+    }`;
+    const list = document.createElement('div');
+    renderTaskList(src, list);
+    expect(list.innerHTML).toContain('Alpha');
+    expect(list.innerHTML).toContain('<table');
+    const det = document.createElement('div');
+    renderTaskDetail(src, det, 'b');
+    expect(det.innerHTML).toContain('Beta');
+    expect(det.innerHTML).toContain('depends on');
+  });
 
   it('renderAll() renders an inline embed block (the embedded-demo path)', () => {
     const div = document.createElement('div');

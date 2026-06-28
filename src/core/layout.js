@@ -101,6 +101,59 @@ export function layoutGraph(model) {
   return { kind: 'graph', nodes, groups, edges, width: gg.width, height: gg.height };
 }
 
+/** Longest-path depth of each task from the start root (id -> depth). */
+function depthOf(model, order, startId) {
+  const taskById = {};
+  model.tasks.forEach((t) => { taskById[t.id] = t; });
+  const depth = { [startId]: 0 };
+  for (const id of order) {
+    if (id === startId) continue;
+    const ds = taskById[id]?.deps || [];
+    depth[id] = 1 + Math.max(0, ...ds.map((d) => depth[d] ?? 0));
+  }
+  return depth;
+}
+
+/**
+ * gantt "organize" (timeless) view: tasks as nodes laid out by the dependency graph
+ * (dagre, deps upstream/left), edges pointing task -> dependency. Same complementary
+ * colors as the calendar view. (spec §5.9)
+ */
+export function layoutGanttGraph(model) {
+  const s = schedule(model);
+  if (s.cycle) return { kind: 'gantt-graph', cycle: s.cycle };
+  const startId = model.start ? model.start.id : 'start';
+
+  // colors (reuse depth-parity + interval coloring on lightweight bars)
+  const depth = depthOf(model, s.order, startId);
+  const cbars = model.tasks.map((t) => ({
+    task: t, es: s.tasks.get(t.id).es, ef: s.tasks.get(t.id).ef, parity: (depth[t.id] || 0) % 2,
+  }));
+  colorBars(cbars, resolvePalette(model));
+  const colorById = {};
+  cbars.forEach((b) => { colorById[b.task.id] = b.color; });
+
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: 'RL', nodesep: 22, ranksep: 64, marginx: 24, marginy: 24 }); // deps to the left
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setNode(startId, { width: 30, height: 30, isStart: true });
+  for (const t of model.tasks) {
+    g.setNode(t.id, { width: Math.max(110, (t.title || t.id).length * 7 + 26), height: 38, task: t });
+  }
+  for (const t of model.tasks) for (const d of t.deps || []) if (g.hasNode(d)) g.setEdge(t.id, d, {});
+
+  dagre.layout(g);
+
+  const nodes = {};
+  g.nodes().forEach((id) => {
+    const nd = g.node(id);
+    nodes[id] = { x: nd.x, y: nd.y, width: nd.width, height: nd.height, task: nd.task, isStart: nd.isStart, color: colorById[id] };
+  });
+  const edges = g.edges().map((e) => ({ from: e.v, to: e.w }));
+  const gg = g.graph();
+  return { kind: 'gantt-graph', startId, nodes, edges, total: s.total, unit: model.calendar?.unit || 'hour', width: gg.width, height: gg.height };
+}
+
 /** gantt layout: lane bands + task bars positioned by the scheduler. */
 export function layoutGantt(model, opts = {}) {
   const cal = model.calendar || {};
@@ -139,14 +192,7 @@ export function layoutGantt(model, opts = {}) {
   });
 
   // Dependency depth (longest path from start) -> parity picks the complementary half.
-  const taskById = {};
-  model.tasks.forEach((t) => { taskById[t.id] = t; });
-  const depth = { [startId]: 0 };
-  for (const id of s.order) {
-    if (id === startId) continue;
-    const ds = taskById[id]?.deps || [];
-    depth[id] = 1 + Math.max(0, ...ds.map((d) => depth[d] ?? 0));
-  }
+  const depth = depthOf(model, s.order, startId);
   bars.forEach((b) => { b.parity = (depth[b.task.id] || 0) % 2; });
 
   // Per-task colors (complementary by depth), then resolve dependency colors for the swatch.
@@ -200,7 +246,7 @@ export function layoutSequence(model) {
 
 /** Dispatch by diagram type. */
 export function layout(model, opts) {
-  if (model.type === 'gantt') return layoutGantt(model, opts);
+  if (model.type === 'gantt') return model.mode === 'timeless' ? layoutGanttGraph(model) : layoutGantt(model, opts);
   if (model.type === 'sequence') return layoutSequence(model);
   return layoutGraph(model);
 }
