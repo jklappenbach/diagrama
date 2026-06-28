@@ -50,7 +50,8 @@ export function estimateSize(el, fontSize = 13) {
     const rows = (el.attrs?.length || 0) + (el.methods?.length || 0);
     const hasStereo = el.stereotype || el.kind === 'interface' || el.kind === 'enum';
     const headH = hasStereo ? 40 : 26; // room for «stereotype» + name
-    return { width: Math.max(150, Math.round(longest * fontSize * CHAR_W) + 24), height: headH + rows * 16 + 14 };
+    const sections = (el.attrs?.length ? 1 : 0) + (el.methods?.length ? 1 : 0); // 2*PAD(5) per section
+    return { width: Math.max(150, Math.round(longest * fontSize * CHAR_W) + 24), height: headH + rows * 16 + sections * 10 };
   }
   const lines = [el.label || el.title || el.id || ''];
   if (el.text?.slots?.subtitle?.content) lines.push(el.text.slots.subtitle.content);

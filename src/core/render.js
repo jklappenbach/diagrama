@@ -294,21 +294,23 @@ function classParts(el, n, theme) {
     fill: el.style?.fill || theme.fill, stroke: el.style?.stroke || theme.stroke, strokeWidth: 0.75, rx: 3, ry: 3 })];
 
   const headH = stereo ? 40 : 26;
-  let y = -hh + (stereo ? 8 : 7);
-  if (stereo) { parts.push(new FabricText(stereo, { left: 0, top: y, originX: 'center', fontSize: 9, fill: theme.muted })); y += 13; }
-  parts.push(new FabricText(el.label || el.id, { left: 0, top: y, originX: 'center', fontSize: 13,
+  const headMid = -hh + headH / 2; // center the header block in its band
+  if (stereo) parts.push(new FabricText(stereo, { left: 0, top: headMid - 8, originX: 'center', originY: 'center', fontSize: 9, fill: theme.muted }));
+  parts.push(new FabricText(el.label || el.id, { left: 0, top: stereo ? headMid + 6 : headMid, originX: 'center', originY: 'center', fontSize: 13,
     fontWeight: el.kind === 'abstract' ? 'normal' : 'bold', fontStyle: el.kind === 'abstract' ? 'italic' : 'normal', fill: theme.text }));
 
-  // Compartments are optional UML: draw attributes / methods only when they have members.
+  // Optional compartments (attrs / methods) — equal PAD top & bottom, text centered per ROW.
+  const ROW = 16, PAD = 5;
   let dy = -hh + headH;
   const section = (list, kind) => {
     if (!list || !list.length) return;
     parts.push(new Line([-hw, dy, hw, dy], { stroke: theme.stroke, strokeWidth: 0.75, originX: 'center', originY: 'center' }));
+    dy += PAD;
     for (const m of list) {
-      dy += 16;
-      parts.push(new FabricText(memberLine(m, kind), { left: -hw + 8, top: dy - 8, originX: 'left', fontSize: 11, fontFamily: 'monospace', fill: theme.text }));
+      parts.push(new FabricText(memberLine(m, kind), { left: -hw + 8, top: dy + ROW / 2, originX: 'left', originY: 'center', fontSize: 11, fontFamily: 'monospace', fill: theme.text }));
+      dy += ROW;
     }
-    dy += 8;
+    dy += PAD;
   };
   section(el.attrs, 'attr');
   section(el.methods, 'method');
