@@ -203,6 +203,23 @@ function isoBox(cx, cy, a, b, h, fill, topFill, stroke) {
   ] };
 }
 
+const ISO = { stroke: '#3a4256', fill: '#ffffff', top: '#eef1f8', accent: '#e07b39' };
+
+/** Line-art iso drum (stacked-disc database/cache), centered on ground point (cx,cy). */
+function isoDrum(cx, cy, r, h, segs, stroke, accent) {
+  const S = 0.62, Z = 0.8, erx = r * S, ery = r * S * 0.5, th = h * Z, topY = cy - th;
+  const arc = (y) => new Path(`M ${cx - erx} ${y} Q ${cx} ${y + ery} ${cx + erx} ${y}`, { fill: '', stroke, strokeWidth: 0.7, selectable: false, evented: false });
+  const p = [
+    new Rect({ left: cx, top: cy - th / 2, width: erx * 2, height: th, originX: 'center', originY: 'center', fill: ISO.fill, selectable: false, evented: false }),
+    new Line([cx - erx, topY, cx - erx, cy], { stroke, strokeWidth: 1, selectable: false, evented: false }),
+    new Line([cx + erx, topY, cx + erx, cy], { stroke, strokeWidth: 1, selectable: false, evented: false }),
+    arc(cy),
+  ];
+  for (let i = 1; i < segs; i++) p.push(arc(topY + th * i / segs));
+  p.push(new Ellipse({ left: cx, top: topY, rx: erx, ry: ery, originX: 'center', originY: 'center', fill: accent ? '#fceadd' : ISO.top, stroke, strokeWidth: 1, selectable: false, evented: false }));
+  return p;
+}
+
 /** Original line-art iso sprite per component (no copyrighted artwork). */
 function isoSprite(base, cx, cy, stroke) {
   const fill = '#ffffff', top = '#eef1f8';
@@ -224,16 +241,24 @@ function isoSprite(base, cx, cy, stroke) {
     p.push(seg(c, box.P(a, b, h)), seg(c, box.P(a, -b, h)), seg(c, box.P(-a, 0, h)));
     return p;
   }
-  if (fam === 'storage') { // shelves / lockers
-    const a = 22, b = 16, h = 26, box = isoBox(cx, cy, a, b, h, fill, top, stroke), p = box.parts;
-    for (let i = 1; i < 3; i++) p.push(seg(box.P(-a, b, h * i / 3), box.P(a, b, h * i / 3)));
-    for (let j = 1; j < 3; j++) { const x = -a + 2 * a * j / 3; p.push(seg(box.P(x, b, 0), box.P(x, b, h))); }
-    return p;
+  if (fam === 'storage') {
+    if (base === 'blob') { // warehouse shelves
+      const a = 22, b = 16, h = 26, box = isoBox(cx, cy, a, b, h, fill, top, stroke), p = box.parts;
+      for (let i = 1; i < 3; i++) p.push(seg(box.P(-a, b, h * i / 3), box.P(a, b, h * i / 3)));
+      for (let j = 1; j < 3; j++) { const x = -a + 2 * a * j / 3; p.push(seg(box.P(x, b, 0), box.P(x, b, h))); }
+      return p;
+    }
+    return isoDrum(cx, cy, 17, 30, base === 'cache' ? 2 : 3, stroke, base === 'cache'); // db / cache / kv = stacked drum
   }
-  if (fam === 'compute') { // server / rack — taller (with slots) for containers
+  if (fam === 'compute') { // server / rack — taller (with slots) for containers; accent LED per slot
     const tall = base === 'container', a = 18, b = 13, h = tall ? 40 : 20;
     const box = isoBox(cx, cy, a, b, h, fill, top, stroke), p = box.parts, slots = tall ? 5 : 2;
-    for (let i = 1; i <= slots; i++) p.push(seg(box.P(-a, b, h * i / (slots + 1)), box.P(a, b, h * i / (slots + 1))));
+    for (let i = 1; i <= slots; i++) {
+      const z = h * i / (slots + 1);
+      p.push(seg(box.P(-a, b, z), box.P(a, b, z)));
+      const d = box.P(a * 0.72, b, z + h * 0.05);
+      p.push(new Circle({ left: d.x, top: d.y, radius: 1.6, fill: ISO.accent, originX: 'center', originY: 'center', selectable: false, evented: false }));
+    }
     return p;
   }
   if (fam === 'messaging') return isoBox(cx, cy, 22, 14, 12, fill, top, stroke).parts; // conveyor (low slab)
