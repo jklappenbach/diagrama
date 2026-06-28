@@ -333,25 +333,40 @@ function drawGantt(canvas, model, lo, theme) {
   const starX = lo.gutter - 14, starY = lo.headerH + 12;
   canvas.add(star(starX, starY, 9, theme.accent));
 
+  const unitLetter = lo.unit === 'hour' ? 'h' : 'd';
   for (const bar of lo.bars) {
+    const stripW = bar.depColors && bar.depColors.length ? 12 : 0;
     canvas.add(new Rect({ left: bar.x, top: bar.y, width: bar.width, height: bar.height,
-      rx: 4, ry: 4, fill: bar.critical ? '#fbe3e3' : '#e6edfb',
-      stroke: bar.critical ? theme.critical : theme.accent, strokeWidth: 1.3,
+      rx: 4, ry: 4, fill: bar.color || '#e6edfb',
+      stroke: bar.critical ? theme.critical : 'rgba(0,0,0,0.35)', strokeWidth: bar.critical ? 2 : 1,
       selectable: false, evented: false }));
-    const lbl = `${bar.task.title || bar.task.id}${bar.task.cost ? ` (${bar.task.cost}d)` : ''}`;
-    canvas.add(new FabricText(lbl, { left: bar.x + 6, top: bar.y + bar.height / 2, originY: 'center',
-      fontSize: 10, fill: theme.text, selectable: false, evented: false }));
+    // recessed dependency swatch(es): the body color of each task this one depends on
+    if (stripW) {
+      const sh = (bar.height - 4) / bar.depColors.length;
+      bar.depColors.forEach((c, i) => {
+        const sx = bar.x + 2, sy = bar.y + 2 + i * sh;
+        canvas.add(new Rect({ left: sx, top: sy, width: 8, height: sh - 1, rx: 1, ry: 1, fill: c,
+          stroke: 'rgba(0,0,0,0.45)', strokeWidth: 0.75, selectable: false, evented: false }));
+        canvas.add(new Line([sx + 8, sy, sx + 8, sy + sh - 1], // light inner edge -> recessed look
+          { stroke: 'rgba(255,255,255,0.65)', strokeWidth: 0.75, selectable: false, evented: false }));
+      });
+    }
+    const lbl = `${bar.task.title || bar.task.id}${bar.task.cost ? ` (${bar.task.cost}${unitLetter})` : ''}`;
+    canvas.add(new FabricText(lbl, { left: bar.x + stripW + 6, top: bar.y + bar.height / 2, originY: 'center',
+      fontSize: 10, fill: '#1c2030', selectable: false, evented: false }));
   }
-  // dependency connectors (finish -> start), skipping the implicit start root.
-  const startId = model.start ? model.start.id : 'start';
-  const byId = {};
-  lo.bars.forEach((b) => { byId[b.task.id] = b; });
-  // a task points at each dependency; a task that only depends on Start points at the star.
-  const startTarget = { x: starX, width: 0, y: starY - 9, height: 18 };
-  for (const bar of lo.bars) {
-    for (const dep of bar.task.deps || []) {
-      const prereq = dep === startId ? startTarget : byId[dep];
-      if (prereq) drawDepArrow(canvas, bar, prereq, theme); // task -> what it depends on
+
+  // Non-calendar (timeless) shows dependency arrows; calendar uses the color swatches instead.
+  if (lo.timeless) {
+    const startId = model.start ? model.start.id : 'start';
+    const byId = {};
+    lo.bars.forEach((b) => { byId[b.task.id] = b; });
+    const startTarget = { x: starX, width: 0, y: starY - 9, height: 18 };
+    for (const bar of lo.bars) {
+      for (const dep of bar.task.deps || []) {
+        const prereq = dep === startId ? startTarget : byId[dep];
+        if (prereq) drawDepArrow(canvas, bar, prereq, theme); // task -> what it depends on
+      }
     }
   }
 

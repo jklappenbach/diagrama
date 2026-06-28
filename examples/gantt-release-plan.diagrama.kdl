@@ -1,5 +1,6 @@
 diagram type="gantt" title="Release plan — v1 launch" mode="calendar" {
     calendar start="2026-07-01" unit="hour" hours-per-day=8 workweek="mon-fri"
+    palette "pastel"
 
     lane "be"  label="Backend"
     lane "fe"  label="Frontend"

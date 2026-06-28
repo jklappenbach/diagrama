@@ -4,6 +4,29 @@
 
 import dagre from 'dagre';
 import { schedule } from './schedule.js';
+import { resolvePalette, colorBars } from './palette.js';
+
+/**
+ * Derive swimlanes from the dependency graph when none are declared: a task with a
+ * single dependent keeps that dependent on its lane (chains stay on one lane; branches
+ * open new lanes). Returns id -> lane index. (spec §5.9)
+ */
+function deriveLanes(model, order, startId) {
+  const succ = new Map();
+  for (const t of model.tasks) for (const d of t.deps) {
+    if (!succ.has(d)) succ.set(d, []);
+    succ.get(d).push(t.id);
+  }
+  const laneOf = {};
+  let next = 0;
+  for (const id of order) {
+    if (id === startId) continue;
+    if (laneOf[id] == null) laneOf[id] = next++;
+    const kids = succ.get(id) || [];
+    if (kids.length === 1 && laneOf[kids[0]] == null) laneOf[kids[0]] = laneOf[id]; // single dependent -> same lane
+  }
+  return laneOf;
+}
 
 const CHAR_W = 0.58; // approx glyph advance as a fraction of font size
 
@@ -89,23 +112,38 @@ export function layoutGantt(model, opts = {}) {
   if (s.cycle) return { kind: 'gantt', cycle: s.cycle };
 
   const timeless = model.mode === 'timeless';
-  const lanes = model.lanes.length ? model.lanes : [{ id: '_', label: '' }];
+  const startId = model.start ? model.start.id : 'start';
+
+  // Lanes: explicit declarations win; otherwise derive from the dependency graph.
+  const declared = model.lanes.length || model.tasks.some((t) => t.lane);
+  const derived = declared ? null : deriveLanes(model, s.order, startId);
+  const laneIdOf = (t) => (declared ? (t.lane ?? model.lanes[0]?.id ?? '_') : `L${derived[t.id]}`);
+  const lanes = declared
+    ? (model.lanes.length ? model.lanes : [{ id: '_', label: '' }])
+    : [...new Set(model.tasks.map((t) => `L${derived[t.id]}`))].sort().map((id) => ({ id, label: '' }));
   const laneIndex = {};
   lanes.forEach((l, i) => { laneIndex[l.id] = i; });
 
   const bars = [];
-  // timeless mode places bars by dependency order column instead of time.
   model.tasks.forEach((t) => {
     const sc = s.tasks.get(t.id);
-    const li = laneIndex[t.lane] ?? 0;
+    const li = laneIndex[laneIdOf(t)] ?? 0;
     const x0 = timeless ? gutter + (s.order.indexOf(t.id) - 1) * 90 : gutter + sc.es * pxPerUnit;
     const w = timeless ? 80 : Math.max(8, sc.cost * pxPerUnit);
     bars.push({
       task: t, es: sc.es, ef: sc.ef, critical: sc.critical,
       x: x0, y: headerH + li * (rowH + laneGap) + 4,
-      width: w, height: rowH - 8, lane: t.lane,
+      width: w, height: rowH - 8, lane: laneIdOf(t),
       startDate: s.dates ? s.dates(sc.es) : undefined,
     });
+  });
+
+  // Per-task interval colors, then resolve each task's dependency colors for the swatch.
+  colorBars(bars, resolvePalette(model));
+  const colorById = {};
+  bars.forEach((b) => { colorById[b.task.id] = b.color; });
+  bars.forEach((b) => {
+    b.depColors = (b.task.deps || []).filter((d) => d !== startId && colorById[d]).map((d) => colorById[d]);
   });
 
   return {

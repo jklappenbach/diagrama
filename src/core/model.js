@@ -82,6 +82,7 @@ export function buildModel(textOrDoc, opts = {}) {
     fonts: {},
     textDefault: undefined,
     nodetypes: {},
+    palette: undefined,
     nodes: [],
     edges: [],
     groups: [],
@@ -111,6 +112,8 @@ export function buildModel(textOrDoc, opts = {}) {
       m.nodetypes[idOf(c)] = { ...props(c), style: readStyle(c) };
     } else if (name === 'text' && args(c).length === 0) {
       m.textDefault = props(c);
+    } else if (name === 'palette') {
+      m.palette = { name: args(c)[0], colors: childrenOf(c).filter((x) => x.name.name === 'color').map((x) => args(x)[0]) };
     }
   }
 

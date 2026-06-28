@@ -44,6 +44,23 @@ describe('layout on real examples', () => {
     expect(lo.messages.every((mm) => Number.isFinite(mm.y))).toBe(true);
   });
 
+  it('derives lanes (single dependent -> same lane) and colors bars + dep swatches', () => {
+    const m = buildModel(`diagram type="gantt" {
+      calendar start="2026-07-01" unit="hour" hours-per-day=8
+      palette "earth"
+      task "spec" cost=8 { deps "start" }
+      task "api"  cost=8 { deps "spec" }
+      task "ui"   cost=8 { deps "spec" }
+      task "integ" cost=8 { deps "api" "ui" }
+    }`);
+    const lo = layoutGantt(m);
+    const lane = (id) => lo.bars.find((b) => b.task.id === id).lane;
+    expect(lane('api')).toBe(lane('integ'));   // api's single dependent inherits its lane
+    expect(lane('api')).not.toBe(lane('ui'));  // spec branches -> api/ui on different lanes
+    expect(lo.bars.every((b) => b.color)).toBe(true);
+    expect(lo.bars.find((b) => b.task.id === 'integ').depColors).toHaveLength(2);
+  });
+
   it('lays out the pipeline example as a graph', () => {
     const m = buildModel(read('pipeline-build-deploy.diagrama.kdl'));
     const lo = layoutGraph({ ...m, nodes: m.steps, groups: m.groups });

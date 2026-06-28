@@ -1,4 +1,4 @@
-# diagrama — specification (v0.9)
+# diagrama — specification (v0.10)
 
 A **diagramming system for software development** — software and systems architecture,
 production and delivery management — authored as a **KDL** document that describes
@@ -397,17 +397,37 @@ Planned execution derived from a **dependency graph**: tasks carry a time cost, 
 topologically ordered, scheduled earliest-start, and the **critical path** and total
 **estimated duration** are computed (not authored). Two render modes:
 
-- **`mode="timeless"`** — dependency / ordering view: no time axis; tasks placed by
-  dependency order with lanes stacked. For reasoning about order and dependencies.
 - **`mode="calendar"`** — bars on a horizontal **calendar axis**, positioned by the
-  computed start/end, honouring the `calendar` working week.
+  computed start/end over the `calendar` working week. **No arrows**: dependencies are
+  shown by *color* (below). Swimlanes order the schedule.
+- **`mode="timeless"`** — a **dependency graph** (no time axis): each task is a node
+  with **arrows to the tasks it depends on**, arranged by *gravitational affinity*
+  (below). For reasoning about structure, and for **editing dependencies by dragging**.
+
+**Color (calendar).** A `palette` gives one color per swimlane's worth of concurrency;
+overlapping tasks are greedily assigned **different** colors, so every task reads
+uniquely in its time slot. A task's **dependencies are shown as recessed color swatches
+on its left edge** — each swatch is the *body color of a task it depends on*, so you
+trace a chain by matching swatch→body color (no arrows needed). Palette is `earth`,
+`pastel`, `neon`, or user-defined; default `pastel`.
+
+**Lanes.** Declared `lane`s win. With **none declared they are derived** from the graph:
+a task with a **single dependent keeps that dependent on its lane** (chains stay on one
+lane; a branch opens a new lane).
+
+**Gravitational layout (timeless).** Tasks "fall" into place from the dependency graph:
+ranked by longest-path depth from `start` (dependencies sit upstream), ordered within a
+rank to minimise edge crossings, with single-dependent chains kept adjacent — a node
+gravitates toward its dependencies and dependents. Dragging a dependency **arrow** onto
+another task rewrites that task's `deps` (format-preserving write-back, §8.5).
 
 **Elements:**
 
 | element | form |
 |---|---|
 | **calendar** | `calendar start="YYYY-MM-DD" unit="hour" hours-per-day=8 workweek="mon-fri"` — calendar mode |
-| **lane** | `lane "id" label="…"` — a swimlane (parallel track); **auto-created** if a task names an undeclared lane |
+| **palette** | `palette "earth"` (or `pastel`/`neon`) or `palette { color "#…"; … }` — task colors |
+| **lane** | `lane "id" label="…"` — a swimlane; **derived from the graph when none are declared** |
 | **start** | `start "start" label="Start"` — the do-nothing **star** root; **implicit if omitted**; exactly one per chart |
 | **task** | `task "id" title="…" cost=N lane="…" start="YYYY-MM-DD"? ticket="…" ticket-url="…"` + `{ desc "…"; deps "id" "id"… }` |
 

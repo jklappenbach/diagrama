@@ -42,12 +42,12 @@ diagram type="system" title="Cajeta layers" theme="light" {
     <script type="application/diagrama+kdl">
 diagram type="gantt" title="Plan" mode="calendar" {
     calendar start="2026-07-01" unit="hour" hours-per-day=8 workweek="mon-fri"
-    lane "be" label="Backend"; lane "fe" label="Frontend"
+    palette "earth"                          // lanes auto-derived; colors + dep swatches
     start "start" label="Start"
-    task "spec" title="Spec" cost=16 lane="be" { deps "start" }
-    task "api"  title="API"  cost=40 lane="be" { deps "spec" }
-    task "ui"   title="UI"   cost=32 lane="fe" { deps "spec" }
-    task "integ" title="Integration" cost=16 lane="be" { deps "api" "ui" }
+    task "spec" title="Spec" cost=16 { deps "start" }
+    task "api"  title="API"  cost=40 { deps "spec" }
+    task "ui"   title="UI"   cost=32 { deps "spec" }
+    task "integ" title="Integration" cost=16 { deps "api" "ui" }
     }
     </script>
   </div>
