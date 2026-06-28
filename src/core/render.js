@@ -247,14 +247,24 @@ function isoMonitor(cx, cy, stroke) {
   return p;
 }
 
-/** Original line-art police officer (security guard) — a person + cap + badge. */
-function isoCop(cx, cy, stroke) {
-  const p = isoPerson(cx, cy, stroke), hy = cy - 32;
-  p.push(new Polygon([{ x: cx - 7, y: hy - 4 }, { x: cx + 7, y: hy - 4 }, { x: cx + 6, y: hy - 9 }, { x: cx - 6, y: hy - 9 }],
-    { fill: ISO.fill, stroke, strokeWidth: 1, selectable: false, evented: false })); // cap crown
-  p.push(new Line([cx - 8, hy - 3, cx + 8, hy - 3], { stroke, strokeWidth: 1.4, selectable: false, evented: false })); // brim
-  p.push(new Circle({ left: cx, top: hy - 6, radius: 1.3, fill: ISO.accent, originX: 'center', originY: 'center', selectable: false, evented: false })); // cap badge
-  return p;
+/** Original "person at a desk": back panel + counter with a figure peeking over.
+ *  cap=true → police cap (guard / cop); else a receptionist / maître d'. */
+function isoDeskFigure(cx, cy, stroke, cap) {
+  const fill = ISO.fill;
+  const panel = isoBox(cx, cy - 7, 22, 3, 26, fill, ISO.top, stroke);
+  const counter = isoBox(cx, cy, 24, 16, 11, fill, ISO.top, stroke);
+  const rx = cx - 5, ry = cy - 5, hy = ry - 20;
+  const person = [
+    new Polygon([{ x: rx - 5, y: ry - 16 }, { x: rx + 5, y: ry - 16 }, { x: rx + 4, y: ry - 9 }, { x: rx - 4, y: ry - 9 }], { fill, stroke, strokeWidth: 1, selectable: false, evented: false }), // shoulders
+    new Circle({ left: rx, top: hy, radius: 4.5, fill, stroke, strokeWidth: 1, originX: 'center', originY: 'center', selectable: false, evented: false }), // head
+    new Circle({ left: rx, top: ry - 13, radius: 1.2, fill: ISO.accent, originX: 'center', originY: 'center', selectable: false, evented: false }), // badge/tie
+  ];
+  if (cap) { // police cap
+    person.push(new Polygon([{ x: rx - 5, y: hy - 3 }, { x: rx + 5, y: hy - 3 }, { x: rx + 4, y: hy - 7 }, { x: rx - 4, y: hy - 7 }], { fill, stroke, strokeWidth: 1, selectable: false, evented: false }));
+    person.push(new Line([rx - 6, hy - 2, rx + 6, hy - 2], { stroke, strokeWidth: 1.2, selectable: false, evented: false }));
+    person.push(new Circle({ left: rx, top: hy - 5, radius: 1, fill: ISO.accent, originX: 'center', originY: 'center', selectable: false, evented: false }));
+  }
+  return [...panel.parts, ...person, ...counter.parts]; // counter last → figure peeks over it
 }
 
 /** Original line-art iso sprite per component (no copyrighted artwork). */
@@ -264,23 +274,14 @@ function isoSprite(base, cx, cy, stroke) {
   const fam = familyOf(base);
   if (base === 'actor') return isoPerson(cx, cy, stroke);
   if (base === 'external') return isoMonitor(cx, cy, stroke);
-  if (base === 'waf') return isoCop(cx, cy, stroke); // security guard / cop
+  if (base === 'waf') return isoDeskFigure(cx, cy, stroke, true); // guard/cop at a checkpoint desk
   if (base === 'firewall') { // brick wall
     const a = 30, b = 5, h = 28, box = isoBox(cx, cy, a, b, h, fill, top, stroke), p = box.parts, rows = 4;
     for (let r = 1; r < rows; r++) p.push(seg(box.P(-a, b, h * r / rows), box.P(a, b, h * r / rows)));
     for (let r = 0; r < rows; r++) { const off = (r % 2) ? a / 2 : 0; for (let x = -a + off; x < a; x += a) p.push(seg(box.P(x, b, h * r / rows), box.P(x, b, h * (r + 1) / rows))); }
     return p;
   }
-  if (base === 'gateway') { // reception desk with a receptionist behind the counter
-    const panel = isoBox(cx, cy - 7, 22, 3, 26, fill, top, stroke);
-    const counter = isoBox(cx, cy, 24, 16, 11, fill, top, stroke);
-    const rx = cx - 5, ry = cy - 5;
-    const person = [
-      new Polygon([{ x: rx - 5, y: ry - 16 }, { x: rx + 5, y: ry - 16 }, { x: rx + 4, y: ry - 9 }, { x: rx - 4, y: ry - 9 }], { fill, stroke, strokeWidth: 1, selectable: false, evented: false }),
-      new Circle({ left: rx, top: ry - 20, radius: 4.5, fill, stroke, strokeWidth: 1, originX: 'center', originY: 'center', selectable: false, evented: false }),
-    ];
-    return [...panel.parts, ...person, ...counter.parts]; // counter drawn last → receptionist peeks over it
-  }
+  if (base === 'gateway') return isoDeskFigure(cx, cy, stroke, false); // receptionist / maître d' at the desk
   if (base === 'lb') { // splitter — low hub with diverging lanes on top
     const a = 20, b = 14, h = 9, box = isoBox(cx, cy, a, b, h, fill, top, stroke), p = box.parts, c = box.P(0, 0, h);
     p.push(seg(c, box.P(a, b, h)), seg(c, box.P(a, -b, h)), seg(c, box.P(-a, 0, h)));
