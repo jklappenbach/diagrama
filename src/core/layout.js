@@ -265,8 +265,27 @@ export function layoutSequence(model) {
   };
 }
 
+/** Isometric system view: lay out flat (dagre), then project the ground plane to 2:1 iso. */
+export function layoutSystemIso(model) {
+  const g = layoutGraph(model);
+  const S = 0.62, margin = 90;
+  const pr = (x, y) => ({ x: (x - y) * S, y: (x + y) * 0.5 * S });
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const nodes = {};
+  for (const id in g.nodes) {
+    const n = g.nodes[id];
+    const p = pr(n.x, n.y);
+    nodes[id] = { ...n, x: p.x, y: p.y };
+    minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
+    maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
+  }
+  for (const id in nodes) { nodes[id].x += -minX + margin; nodes[id].y += -minY + margin; }
+  return { kind: 'iso', nodes, edges: g.edges, width: (maxX - minX) + 2 * margin, height: (maxY - minY) + 2 * margin + 40 };
+}
+
 /** Dispatch by diagram type. */
 export function layout(model, opts) {
+  if (model.type === 'system' && model.view === 'iso') return layoutSystemIso(model);
   if (model.type === 'gantt') return model.mode === 'timeless' ? layoutGanttGraph(model) : layoutGantt(model, opts);
   if (model.type === 'sequence') return layoutSequence(model);
   return layoutGraph(model);

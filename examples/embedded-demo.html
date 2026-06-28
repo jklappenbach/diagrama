@@ -128,6 +128,34 @@ diagram type="system" title="Web app — request path" theme="light" {
   </section>
 
   <section>
+    <h2>system — isometric view (spike) <code>view="iso"</code></h2>
+    <p class="cap">line-art 2.5D: reception desk = gateway, brick wall = firewall, splitter = load balancer,
+      server racks = web cluster, shelves/lockers = cache &amp; database. Original sprites.</p>
+    <div class="diagrama stage"><script type="application/diagrama+kdl">
+diagram type="system" view="iso" title="Isometric" theme="light" {
+    layout engine="dagre" direction="TB" spacing=64
+    node "client" label="Client"        kind="actor"
+    node "gw"     label="API gateway"    kind="gateway"
+    node "fw"     label="Firewall"       kind="firewall"
+    node "lb"     label="Load balancer"  kind="lb"
+    node "w1"     label="web-1"          kind="container"
+    node "w2"     label="web-2"          kind="container"
+    node "w3"     label="web-3"          kind="container"
+    node "cache"  label="Redis"          kind="cache"
+    node "db"     label="Postgres"       kind="sql"
+    edge "client" "gw"
+    edge "gw" "fw"
+    edge "fw" "lb"
+    edge "lb" "w1"
+    edge "lb" "w2"
+    edge "lb" "w3"
+    edge "w1" "cache"
+    edge "w1" "db"
+}
+    </script></div>
+  </section>
+
+  <section>
     <h2>gantt — calendar view</h2>
     <p class="cap">hours granularity, auto-derived swimlanes, complementary palette (parent/child contrast),
       a narrow color band per dependency. Critical path = bold border.</p>

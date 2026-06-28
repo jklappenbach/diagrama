@@ -77,6 +77,7 @@ export function buildModel(textOrDoc, opts = {}) {
     title: meta.title,
     theme: meta.theme || 'light',
     mode: meta.mode,
+    view: meta.view,
     layout: undefined,
     calendar: undefined,
     fonts: {},

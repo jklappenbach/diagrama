@@ -153,6 +153,8 @@ export function render(container, model, opts = {}) {
 
   if (lo.cycle) {
     drawPlaceholder(canvas, theme, `dependency cycle: ${lo.cycle.join(' → ')}`, contentW);
+  } else if (lo.kind === 'iso') {
+    drawSystemIso(canvas, model, lo, theme);
   } else if (lo.kind === 'gantt-graph') {
     drawGanttGraph(canvas, model, lo, theme);
   } else if (lo.kind === 'gantt') {
@@ -178,6 +180,74 @@ export function render(container, model, opts = {}) {
     reset: () => applyZoom(1),
     destroy: () => canvas.dispose(),
   };
+}
+
+// ---------- isometric (line-art 2.5D) ----------
+
+const isoP = (cx, cy, dx, dy, dz, S = 0.62, Z = 0.8) => ({ x: cx + (dx - dy) * S, y: cy + (dx + dy) * 0.5 * S - dz * Z });
+const isoFace = (pts, fill, stroke) => new Polygon(pts, { fill, stroke, strokeWidth: 1, strokeLineJoin: 'round', selectable: false, evented: false });
+
+/** Line-art iso box centered on ground point (cx,cy); footprint 2a×2b, height h. Top + 2 front faces. */
+function isoBox(cx, cy, a, b, h, fill, topFill, stroke) {
+  const P = (dx, dy, dz) => isoP(cx, cy, dx, dy, dz);
+  const bff = P(a, b, 0), bfr = P(a, -b, 0), bbl = P(-a, b, 0);
+  const tff = P(a, b, h), tfr = P(a, -b, h), tbl = P(-a, b, h), tbb = P(-a, -b, h);
+  return { P, parts: [
+    isoFace([tff, tfr, tbb, tbl], topFill, stroke), // top
+    isoFace([bbl, bff, tff, tbl], fill, stroke),    // left front face (y = +b)
+    isoFace([bfr, bff, tff, tfr], fill, stroke),    // right front face (x = +a)
+  ] };
+}
+
+/** Original line-art iso sprite per component (no copyrighted artwork). */
+function isoSprite(base, cx, cy, stroke) {
+  const fill = '#ffffff', top = '#eef1f8';
+  const seg = (p1, p2) => new Line([p1.x, p1.y, p2.x, p2.y], { stroke, strokeWidth: 0.7, selectable: false, evented: false });
+  const fam = familyOf(base);
+  if (base === 'firewall') { // brick wall
+    const a = 30, b = 5, h = 28, box = isoBox(cx, cy, a, b, h, fill, top, stroke), p = box.parts, rows = 4;
+    for (let r = 1; r < rows; r++) p.push(seg(box.P(-a, b, h * r / rows), box.P(a, b, h * r / rows)));
+    for (let r = 0; r < rows; r++) { const off = (r % 2) ? a / 2 : 0; for (let x = -a + off; x < a; x += a) p.push(seg(box.P(x, b, h * r / rows), box.P(x, b, h * (r + 1) / rows))); }
+    return p;
+  }
+  if (base === 'gateway') { // reception desk: counter + back panel
+    const panel = isoBox(cx, cy - 7, 22, 3, 26, fill, top, stroke);
+    const counter = isoBox(cx, cy, 24, 16, 11, fill, top, stroke);
+    return [...panel.parts, ...counter.parts];
+  }
+  if (base === 'lb') { // splitter — low hub with diverging lanes on top
+    const a = 20, b = 14, h = 9, box = isoBox(cx, cy, a, b, h, fill, top, stroke), p = box.parts, c = box.P(0, 0, h);
+    p.push(seg(c, box.P(a, b, h)), seg(c, box.P(a, -b, h)), seg(c, box.P(-a, 0, h)));
+    return p;
+  }
+  if (fam === 'storage') { // shelves / lockers
+    const a = 22, b = 16, h = 26, box = isoBox(cx, cy, a, b, h, fill, top, stroke), p = box.parts;
+    for (let i = 1; i < 3; i++) p.push(seg(box.P(-a, b, h * i / 3), box.P(a, b, h * i / 3)));
+    for (let j = 1; j < 3; j++) { const x = -a + 2 * a * j / 3; p.push(seg(box.P(x, b, 0), box.P(x, b, h))); }
+    return p;
+  }
+  if (fam === 'compute') { // server / rack — taller (with slots) for containers
+    const tall = base === 'container', a = 18, b = 13, h = tall ? 40 : 20;
+    const box = isoBox(cx, cy, a, b, h, fill, top, stroke), p = box.parts, slots = tall ? 5 : 2;
+    for (let i = 1; i <= slots; i++) p.push(seg(box.P(-a, b, h * i / (slots + 1)), box.P(a, b, h * i / (slots + 1))));
+    return p;
+  }
+  if (fam === 'messaging') return isoBox(cx, cy, 22, 14, 12, fill, top, stroke).parts; // conveyor (low slab)
+  return isoBox(cx, cy, 17, 13, 15, fill, top, stroke).parts; // network/other — plain block
+}
+
+function drawSystemIso(canvas, model, lo, theme) {
+  for (const e of lo.edges) {
+    const a = lo.nodes[e.from], b = lo.nodes[e.to];
+    if (a && b) canvas.add(new Line([a.x, a.y, b.x, b.y], { stroke: theme.muted, strokeWidth: 1, selectable: false, evented: false }));
+  }
+  // draw back-to-front so nearer sprites overlap farther ones
+  const ids = Object.keys(lo.nodes).sort((i, j) => lo.nodes[i].y - lo.nodes[j].y);
+  for (const id of ids) {
+    const n = lo.nodes[id];
+    for (const part of isoSprite(n.el.base || n.el.kind, n.x, n.y, theme.stroke)) canvas.add(part);
+    canvas.add(new FabricText(n.el.label || id, { left: n.x, top: n.y + 22, originX: 'center', fontSize: 11, fill: theme.text, selectable: false, evented: false }));
+  }
 }
 
 // ---------- graph (system) ----------

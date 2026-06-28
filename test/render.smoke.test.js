@@ -67,6 +67,23 @@ describe('render smoke (headless fabric)', () => {
     ctl.destroy();
   });
 
+  it('renders the isometric system view', () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const ctl = renderKdl(`diagram type="system" view="iso" {
+      node "gw" label="GW" kind="gateway"
+      node "lb" label="LB" kind="lb"
+      node "fw" label="FW" kind="firewall"
+      node "s1" label="s1" kind="service"
+      node "db" label="DB" kind="sql"
+      edge "gw" "lb"
+      edge "lb" "s1"
+      edge "s1" "db"
+    }`, el, { readOnly: true });
+    expect(ctl.canvas.getObjects().length).toBeGreaterThan(0);
+    ctl.destroy();
+  });
+
   it('renders task list + task detail HTML', () => {
     const src = `diagram type="gantt" {
       calendar start="2026-07-01" unit="hour" hours-per-day=8
