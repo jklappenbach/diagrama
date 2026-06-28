@@ -220,21 +220,66 @@ function isoDrum(cx, cy, r, h, segs, stroke, accent) {
   return p;
 }
 
+/** Original line-art person (actor/user). */
+function isoPerson(cx, cy, stroke) {
+  return [
+    new Line([cx - 3, cy, cx - 3, cy - 12], { stroke, strokeWidth: 1.4, selectable: false, evented: false }),
+    new Line([cx + 3, cy, cx + 3, cy - 12], { stroke, strokeWidth: 1.4, selectable: false, evented: false }),
+    new Polygon([{ x: cx - 7, y: cy - 26 }, { x: cx + 7, y: cy - 26 }, { x: cx + 5, y: cy - 12 }, { x: cx - 5, y: cy - 12 }],
+      { fill: ISO.fill, stroke, strokeWidth: 1, selectable: false, evented: false }),
+    new Circle({ left: cx, top: cy - 20, radius: 1.8, fill: ISO.accent, originX: 'center', originY: 'center', selectable: false, evented: false }),
+    new Circle({ left: cx, top: cy - 32, radius: 6, fill: ISO.fill, stroke, strokeWidth: 1, originX: 'center', originY: 'center', selectable: false, evented: false }),
+  ];
+}
+
+/** Original line-art monitor/dashboard (external app/client device) with accent chart bars. */
+function isoMonitor(cx, cy, stroke) {
+  const sw = 24, sh = 16, top = cy - 8 - sh, p = [
+    new Line([cx, cy, cx, cy - 8], { stroke, strokeWidth: 1.4, selectable: false, evented: false }),
+    new Line([cx - 6, cy, cx + 6, cy], { stroke, strokeWidth: 1.4, selectable: false, evented: false }),
+    new Polygon([{ x: cx - sw / 2, y: top + 3 }, { x: cx + sw / 2, y: top - 3 }, { x: cx + sw / 2, y: top + sh - 3 }, { x: cx - sw / 2, y: top + sh + 3 }],
+      { fill: ISO.fill, stroke, strokeWidth: 1, selectable: false, evented: false }),
+  ];
+  for (let i = 0; i < 3; i++) {
+    const bx = cx - 6 + i * 6, baseY = top + sh - 2 - i * 1, bh = 4 + i * 3;
+    p.push(new Line([bx, baseY, bx, baseY - bh], { stroke: ISO.accent, strokeWidth: 2, selectable: false, evented: false }));
+  }
+  return p;
+}
+
+/** Original line-art police officer (security guard) — a person + cap + badge. */
+function isoCop(cx, cy, stroke) {
+  const p = isoPerson(cx, cy, stroke), hy = cy - 32;
+  p.push(new Polygon([{ x: cx - 7, y: hy - 4 }, { x: cx + 7, y: hy - 4 }, { x: cx + 6, y: hy - 9 }, { x: cx - 6, y: hy - 9 }],
+    { fill: ISO.fill, stroke, strokeWidth: 1, selectable: false, evented: false })); // cap crown
+  p.push(new Line([cx - 8, hy - 3, cx + 8, hy - 3], { stroke, strokeWidth: 1.4, selectable: false, evented: false })); // brim
+  p.push(new Circle({ left: cx, top: hy - 6, radius: 1.3, fill: ISO.accent, originX: 'center', originY: 'center', selectable: false, evented: false })); // cap badge
+  return p;
+}
+
 /** Original line-art iso sprite per component (no copyrighted artwork). */
 function isoSprite(base, cx, cy, stroke) {
   const fill = '#ffffff', top = '#eef1f8';
   const seg = (p1, p2) => new Line([p1.x, p1.y, p2.x, p2.y], { stroke, strokeWidth: 0.7, selectable: false, evented: false });
   const fam = familyOf(base);
+  if (base === 'actor') return isoPerson(cx, cy, stroke);
+  if (base === 'external') return isoMonitor(cx, cy, stroke);
+  if (base === 'waf') return isoCop(cx, cy, stroke); // security guard / cop
   if (base === 'firewall') { // brick wall
     const a = 30, b = 5, h = 28, box = isoBox(cx, cy, a, b, h, fill, top, stroke), p = box.parts, rows = 4;
     for (let r = 1; r < rows; r++) p.push(seg(box.P(-a, b, h * r / rows), box.P(a, b, h * r / rows)));
     for (let r = 0; r < rows; r++) { const off = (r % 2) ? a / 2 : 0; for (let x = -a + off; x < a; x += a) p.push(seg(box.P(x, b, h * r / rows), box.P(x, b, h * (r + 1) / rows))); }
     return p;
   }
-  if (base === 'gateway') { // reception desk: counter + back panel
+  if (base === 'gateway') { // reception desk with a receptionist behind the counter
     const panel = isoBox(cx, cy - 7, 22, 3, 26, fill, top, stroke);
     const counter = isoBox(cx, cy, 24, 16, 11, fill, top, stroke);
-    return [...panel.parts, ...counter.parts];
+    const rx = cx - 5, ry = cy - 5;
+    const person = [
+      new Polygon([{ x: rx - 5, y: ry - 16 }, { x: rx + 5, y: ry - 16 }, { x: rx + 4, y: ry - 9 }, { x: rx - 4, y: ry - 9 }], { fill, stroke, strokeWidth: 1, selectable: false, evented: false }),
+      new Circle({ left: rx, top: ry - 20, radius: 4.5, fill, stroke, strokeWidth: 1, originX: 'center', originY: 'center', selectable: false, evented: false }),
+    ];
+    return [...panel.parts, ...person, ...counter.parts]; // counter drawn last → receptionist peeks over it
   }
   if (base === 'lb') { // splitter — low hub with diverging lanes on top
     const a = 20, b = 14, h = 9, box = isoBox(cx, cy, a, b, h, fill, top, stroke), p = box.parts, c = box.P(0, 0, h);

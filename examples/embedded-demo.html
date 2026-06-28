@@ -136,6 +136,7 @@ diagram type="system" view="iso" title="Isometric" theme="light" {
     layout engine="dagre" direction="TB" spacing=64
     node "client" label="Client"        kind="actor"
     node "gw"     label="API gateway"    kind="gateway"
+    node "waf"    label="WAF (guard)"    kind="waf"
     node "fw"     label="Firewall"       kind="firewall"
     node "lb"     label="Load balancer"  kind="lb"
     node "w1"     label="web-1"          kind="container"
@@ -144,7 +145,8 @@ diagram type="system" view="iso" title="Isometric" theme="light" {
     node "cache"  label="Redis"          kind="cache"
     node "db"     label="Postgres"       kind="sql"
     edge "client" "gw"
-    edge "gw" "fw"
+    edge "gw" "waf"
+    edge "waf" "fw"
     edge "fw" "lb"
     edge "lb" "w1"
     edge "lb" "w2"
