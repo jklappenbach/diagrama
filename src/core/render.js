@@ -2,7 +2,7 @@
 // Browser-only (needs a DOM canvas). Dispatches by diagram type; system and gantt are
 // implemented, other types draw a "not yet" placeholder so the bundle stays whole.
 
-import { Canvas, Rect, Ellipse, Circle, Textbox, Line, Polygon, Path, FabricText, Group as FabricGroup } from 'fabric';
+import { Canvas, Rect, Ellipse, Circle, Textbox, Line, Polygon, Polyline, Path, FabricText, Group as FabricGroup } from 'fabric';
 import { layout, memberLine } from './layout.js';
 import { setPos, emit } from './kdl.js';
 
@@ -162,15 +162,20 @@ function resolveEnds(el) {
   return { fromEnd, toEnd, dashed, glyph };
 }
 
+// Length each end occupies along the edge (so the line can stop at its base, tip = border).
+const END_LEN = { arrow: 8, open: 8, triangle: 12, diamond: 16, 'filled-diamond': 16, dot: 8, 'o-dot': 8, cross: 10, none: 0 };
+const endLen = (k) => END_LEN[k] || 0;
+
 function makeEnd(kind, color, s = 8) {
   const tri = [{ x: 0, y: 0 }, { x: -s, y: -s * 0.55 }, { x: -s, y: s * 0.55 }];
+  const vee = [{ x: -s, y: -s * 0.6 }, { x: 0, y: 0 }, { x: -s, y: s * 0.6 }]; // open stick arrow
   const big = [{ x: 0, y: 0 }, { x: -1.5 * s, y: -s * 0.9 }, { x: -1.5 * s, y: s * 0.9 }];
   const dia = [{ x: 0, y: 0 }, { x: -s, y: -s * 0.6 }, { x: -2 * s, y: 0 }, { x: -s, y: s * 0.6 }];
   const base = { originX: 'center', originY: 'center', selectable: false, evented: false };
   switch (kind) {
     case 'arrow': return new Polygon(tri, { ...base, fill: color });
+    case 'open': return new Polyline(vee, { ...base, fill: '', stroke: color, strokeWidth: 1.1 });
     case 'triangle': return new Polygon(big, { ...base, fill: '#fff', stroke: color, strokeWidth: 0.75 }); // UML generalization
-    case 'open': return new Polygon(tri, { ...base, fill: 'transparent', stroke: color, strokeWidth: 0.75 });
     case 'diamond': return new Polygon(dia, { ...base, fill: '#fff', stroke: color, strokeWidth: 0.75 });
     case 'filled-diamond': return new Polygon(dia, { ...base, fill: color });
     case 'dot': return new Circle({ ...base, radius: s * 0.5, fill: color });
@@ -267,13 +272,18 @@ function drawEdge(canvas, e, lo, theme) {
   if (!a || !b) return;
   const p = borderPoint(a, b), q = borderPoint(b, a);
   const { fromEnd, toEnd, dashed, glyph } = resolveEnds(e.el);
-  canvas.add(new Line([p.x, p.y, q.x, q.y], {
-    stroke: theme.stroke, strokeWidth: 1.3, strokeDashArray: dashed ? [5, 4] : [],
+  const dx = q.x - p.x, dy = q.y - p.y, len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len;
+  const tl = endLen(toEnd), fl = endLen(fromEnd);
+  // line stops at each arrowhead's base, so it never shows through a hollow/open head
+  canvas.add(new Line([p.x + ux * fl, p.y + uy * fl, q.x - ux * tl, q.y - uy * tl], {
+    stroke: theme.stroke, strokeWidth: 1.1, strokeDashArray: dashed ? [5, 4] : [],
     selectable: false, evented: false,
   }));
-  const deg = (Math.atan2(q.y - p.y, q.x - p.x) * 180) / Math.PI;
-  placeEnd(canvas, makeEnd(toEnd, theme.stroke), q.x, q.y, deg);
-  placeEnd(canvas, makeEnd(fromEnd, theme.stroke), p.x, p.y, deg + 180);
+  const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+  // tip sits ON the border: place the head's center back by half its length
+  placeEnd(canvas, makeEnd(toEnd, theme.stroke), q.x - ux * tl / 2, q.y - uy * tl / 2, deg);
+  placeEnd(canvas, makeEnd(fromEnd, theme.stroke), p.x + ux * fl / 2, p.y + uy * fl / 2, deg + 180);
 
   const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
   const label = e.el?.label || transitionLabel(e.el);

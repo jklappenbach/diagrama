@@ -76,7 +76,8 @@ export function layoutGraph(model) {
     g.setNode(gr.id, { isGroup: true, el: gr });
     for (const mid of gr.members) parentOf[mid] = gr.id;
   }
-  for (const n of model.nodes) {
+  const items = model.type === 'pipeline' ? model.steps : model.nodes; // pipeline nodes are `step`s
+  for (const n of items) {
     g.setNode(n.id, { ...estimateSize(n), el: n });
     if (parentOf[n.id] && g.hasNode(parentOf[n.id])) g.setParent(n.id, parentOf[n.id]);
   }
@@ -238,7 +239,9 @@ export function layoutSequence(model) {
     const maxX = (xs.length ? Math.max(...xs) : margin + headerW) + 26;
     return {
       ...fr, x: minX, w: maxX - minX,
-      y: firstRowY + fr.range[0] * rowH - 26, h: (fr.range[1] - fr.range[0]) * rowH + 30,
+      // bottom sits a margin below the LAST contained message, not the row after it
+      // (so a following message — e.g. a return — stays outside the frame).
+      y: firstRowY + fr.range[0] * rowH - 26, h: (fr.range[1] - fr.range[0] - 1) * rowH + 44,
       branches: fr.branches.map((b) => ({ label: b.label, y: firstRowY + b.range[0] * rowH - 14 })),
     };
   });
