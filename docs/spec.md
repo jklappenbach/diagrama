@@ -408,11 +408,13 @@ topologically ordered, scheduled earliest-start, and the **critical path** and t
 (warm / cool). Tasks **alternate halves task-by-task down the chain**, so a parent and
 child get *complementary* colors; within a half, colors cycle so consecutive tasks vary,
 and overlapping tasks never collide — each reads uniquely in its time slot. A task's
-**dependencies are shown as a fixed-width color band on its left edge** (subdivided
-among the dependencies), each segment the *body color of a task it depends on* — so you
-trace a chain by matching band→body color, and parent↔child contrast makes it pop (no
-arrows). Bars use a configurable **black outline** (`palette … outline="#…"`); the
-critical path is a **thicker** border. Palette is `earth`, `pastel`, `neon`, or
+**dependencies are shown as a fixed-width color band on its left edge** — subdivided
+into one vertical segment per dependency (so total width never varies), each segment the
+*body color of a task it depends on*. The **binding** dependency (the latest-finishing,
+which actually gates this task's start) is placed first and rendered **twice as wide**.
+So you trace a chain by matching band→body color, and parent↔child contrast makes it pop
+(no arrows). Bars use a configurable **thin black outline** (`palette … outline="#…"`);
+the critical path is a slightly thicker border. Palette is `earth`, `pastel`, `neon`, or
 user-defined (`palette { color "#…"; … }`, split in half); default `pastel`.
 
 **Lanes.** Declared `lane`s win. With **none declared they are derived** from the graph:
@@ -494,7 +496,7 @@ The viewport is independent of diagram size and applies to **every** type:
 
 - **Scrollbars + pan** — when the rendered canvas exceeds the window, horizontal and
   vertical scrollbars appear and the diagram pans (background-drag / scroll-wheel).
-- **Zoom** — mouse wheel and **Ctrl + ↑ / ↓** (and `+` / `−`), zooming about the
+- **Zoom** — **Ctrl + wheel** and **Ctrl + ↑ / ↓** (and `+` / `−`), zooming about the
   cursor; plus **fit-to-window** and **100%** reset.
 - In `gantt` `mode=calendar`, the time axis scrolls horizontally with a **sticky lane
   gutter** and **sticky date header**.

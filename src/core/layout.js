@@ -48,7 +48,9 @@ export function estimateSize(el, fontSize = 13) {
     ];
     const longest = Math.max(...lines.map((s) => s.length));
     const rows = (el.attrs?.length || 0) + (el.methods?.length || 0);
-    return { width: Math.max(150, Math.round(longest * fontSize * CHAR_W) + 24), height: 28 + rows * 16 + 12 };
+    const hasStereo = el.stereotype || el.kind === 'interface' || el.kind === 'enum';
+    const headH = hasStereo ? 40 : 26; // room for «stereotype» + name
+    return { width: Math.max(150, Math.round(longest * fontSize * CHAR_W) + 24), height: headH + rows * 16 + 14 };
   }
   const lines = [el.label || el.title || el.id || ''];
   if (el.text?.slots?.subtitle?.content) lines.push(el.text.slots.subtitle.content);
@@ -200,7 +202,11 @@ export function layoutGantt(model, opts = {}) {
   const colorById = {};
   bars.forEach((b) => { colorById[b.task.id] = b.color; });
   bars.forEach((b) => {
-    b.depColors = (b.task.deps || []).filter((d) => d !== startId && colorById[d]).map((d) => colorById[d]);
+    // order deps with the BINDING one first (latest finish — it gates this task's start).
+    const ds = (b.task.deps || []).filter((d) => d !== startId && colorById[d])
+      .sort((d1, d2) => (s.tasks.get(d2)?.ef ?? 0) - (s.tasks.get(d1)?.ef ?? 0));
+    b.depColors = ds.map((d) => colorById[d]);
+    b.bindingIdx = ds.length ? 0 : -1;
   });
 
   return {

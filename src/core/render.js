@@ -23,7 +23,7 @@ const familyOf = (base) => FAMILY[base] || 'compute';
 
 /** Shape parts (centered at origin) for a node family — boxes/cylinders/pills/channels. */
 function shapeParts(family, w, h, fill, stroke) {
-  const common = { fill, stroke, strokeWidth: 1.4, originX: 'center', originY: 'center' };
+  const common = { fill, stroke, strokeWidth: 0.75, originX: 'center', originY: 'center' };
   if (family === 'storage') {
     // cylinder. Body is an OPEN path (sides + curved bottom, NO top edge), so nothing is
     // stroked across the top; the OPAQUE cap ellipse is drawn over it to form the rim.
@@ -169,12 +169,12 @@ function makeEnd(kind, color, s = 8) {
   const base = { originX: 'center', originY: 'center', selectable: false, evented: false };
   switch (kind) {
     case 'arrow': return new Polygon(tri, { ...base, fill: color });
-    case 'triangle': return new Polygon(big, { ...base, fill: '#fff', stroke: color, strokeWidth: 1.4 }); // UML generalization
-    case 'open': return new Polygon(tri, { ...base, fill: 'transparent', stroke: color, strokeWidth: 1.4 });
-    case 'diamond': return new Polygon(dia, { ...base, fill: '#fff', stroke: color, strokeWidth: 1.4 });
+    case 'triangle': return new Polygon(big, { ...base, fill: '#fff', stroke: color, strokeWidth: 0.75 }); // UML generalization
+    case 'open': return new Polygon(tri, { ...base, fill: 'transparent', stroke: color, strokeWidth: 0.75 });
+    case 'diamond': return new Polygon(dia, { ...base, fill: '#fff', stroke: color, strokeWidth: 0.75 });
     case 'filled-diamond': return new Polygon(dia, { ...base, fill: color });
     case 'dot': return new Circle({ ...base, radius: s * 0.5, fill: color });
-    case 'o-dot': return new Circle({ ...base, radius: s * 0.5, fill: '#fff', stroke: color, strokeWidth: 1.4 });
+    case 'o-dot': return new Circle({ ...base, radius: s * 0.5, fill: '#fff', stroke: color, strokeWidth: 0.75 });
     case 'cross': return new FabricText('✕', { ...base, fontSize: s * 1.6, fill: color });
     default: return null;
   }
@@ -217,7 +217,7 @@ function nodeParts(el, n, theme) {
 function stateParts(el, n, theme) {
   const w = n.width, h = n.height;
   const base = { originX: 'center', originY: 'center', fill: el.style?.fill || theme.fill,
-    stroke: el.style?.stroke || theme.stroke, strokeWidth: 1.4 };
+    stroke: el.style?.stroke || theme.stroke, strokeWidth: 0.75 };
   if (el.kind === 'initial') return [new Circle({ ...base, radius: 9, fill: theme.stroke })];
   if (el.kind === 'final') return [
     new Circle({ ...base, radius: 11, fill: 'transparent' }),
@@ -238,22 +238,27 @@ function classParts(el, n, theme) {
   const STEREO = { interface: '«interface»', enum: '«enumeration»' };
   const stereo = el.stereotype ? `«${el.stereotype}»` : STEREO[el.kind];
   const parts = [new Rect({ width: w, height: h, originX: 'center', originY: 'center',
-    fill: el.style?.fill || theme.fill, stroke: el.style?.stroke || theme.stroke, strokeWidth: 1.4, rx: 3, ry: 3 })];
+    fill: el.style?.fill || theme.fill, stroke: el.style?.stroke || theme.stroke, strokeWidth: 0.75, rx: 3, ry: 3 })];
 
-  const headH = 26;
-  let y = -hh + 6;
-  if (stereo) { parts.push(new FabricText(stereo, { left: 0, top: y, originX: 'center', fontSize: 9, fill: theme.muted })); y += 11; }
+  const headH = stereo ? 40 : 26;
+  let y = -hh + (stereo ? 8 : 7);
+  if (stereo) { parts.push(new FabricText(stereo, { left: 0, top: y, originX: 'center', fontSize: 9, fill: theme.muted })); y += 13; }
   parts.push(new FabricText(el.label || el.id, { left: 0, top: y, originX: 'center', fontSize: 13,
     fontWeight: el.kind === 'abstract' ? 'normal' : 'bold', fontStyle: el.kind === 'abstract' ? 'italic' : 'normal', fill: theme.text }));
 
+  // Compartments are optional UML: draw attributes / methods only when they have members.
   let dy = -hh + headH;
-  const divider = () => parts.push(new Line([-hw, dy, hw, dy], { stroke: theme.stroke, strokeWidth: 1, originX: 'center', originY: 'center' }));
-  const rows = (list, kind) => { for (const m of list || []) {
-    dy += 16;
-    parts.push(new FabricText(memberLine(m, kind), { left: -hw + 8, top: dy - 8, originX: 'left', fontSize: 11, fontFamily: 'monospace', fill: theme.text }));
-  } };
-  divider(); rows(el.attrs, 'attr');
-  dy += 6; divider(); rows(el.methods, 'method');
+  const section = (list, kind) => {
+    if (!list || !list.length) return;
+    parts.push(new Line([-hw, dy, hw, dy], { stroke: theme.stroke, strokeWidth: 0.75, originX: 'center', originY: 'center' }));
+    for (const m of list) {
+      dy += 16;
+      parts.push(new FabricText(memberLine(m, kind), { left: -hw + 8, top: dy - 8, originX: 'left', fontSize: 11, fontFamily: 'monospace', fill: theme.text }));
+    }
+    dy += 8;
+  };
+  section(el.attrs, 'attr');
+  section(el.methods, 'method');
   return parts;
 }
 
@@ -345,20 +350,26 @@ function drawGantt(canvas, model, lo, theme) {
 
   const unitLetter = lo.unit === 'hour' ? 'h' : 'd';
   const outline = model.palette?.outline || '#000';
-  const STRIP = 6; // fixed-width dependency strip, the SAME for every task...
+  const STRIP = 14; // fixed-width dependency strip (same for every task), subdivided per dep
   for (const bar of lo.bars) {
     const nb = bar.depColors ? bar.depColors.length : 0;
     const stripW = nb ? STRIP : 0;
-    // outline is always the configured color (black default); critical = thicker, not colored.
+    // outline is always the configured color (black default), thin; critical = a bit thicker.
     canvas.add(new Rect({ left: bar.x, top: bar.y, width: bar.width, height: bar.height,
-      rx: 4, ry: 4, fill: bar.color || '#e6edfb', stroke: outline, strokeWidth: bar.critical ? 2 : 1,
+      rx: 4, ry: 4, fill: bar.color || '#e6edfb', stroke: outline, strokeWidth: bar.critical ? 1.5 : 0.75,
       selectable: false, evented: false }));
-    // ...subdivided vertically among the dependencies (so total width never varies)
+    // one vertical segment per dependency; the binding dep (index 0) is twice as wide.
     if (nb) {
-      const sh = (bar.height - 2) / nb;
+      const weights = bar.depColors.map((_, i) => (i === bar.bindingIdx ? 2 : 1));
+      const tot = weights.reduce((a, w) => a + w, 0);
+      let x = bar.x + 0.5;
       bar.depColors.forEach((c, i) => {
-        canvas.add(new Rect({ left: bar.x + 1, top: bar.y + 1 + i * sh, width: STRIP, height: sh, fill: c,
+        const w = (STRIP - 1) * weights[i] / tot;
+        canvas.add(new Rect({ left: x, top: bar.y + 0.5, width: w, height: bar.height - 1, fill: c,
           selectable: false, evented: false }));
+        if (i > 0) canvas.add(new Line([x, bar.y + 0.5, x, bar.y + bar.height - 0.5],
+          { stroke: outline, strokeWidth: 0.5, selectable: false, evented: false }));
+        x += w;
       });
     }
     const lbl = `${bar.task.title || bar.task.id}${bar.task.cost ? ` (${bar.task.cost}${unitLetter})` : ''}`;
@@ -458,7 +469,7 @@ function drawGanttGraph(canvas, model, lo, theme) {
     const n = lo.nodes[id];
     if (n.isStart) { canvas.add(star(n.x, n.y, 11, theme.accent)); continue; }
     canvas.add(new Rect({ left: n.x, top: n.y, width: n.width, height: n.height, originX: 'center', originY: 'center',
-      rx: 5, ry: 5, fill: n.color || theme.fill, stroke: outline, strokeWidth: 1.2, selectable: false, evented: false }));
+      rx: 5, ry: 5, fill: n.color || theme.fill, stroke: outline, strokeWidth: 0.75, selectable: false, evented: false }));
     const t = n.task;
     canvas.add(new FabricText(`${t.title || t.id}${t.cost ? ` (${t.cost}${unitLetter})` : ''}`,
       { left: n.x, top: n.y, originX: 'center', originY: 'center', fontSize: 11, fill: '#1c2030', selectable: false, evented: false }));
@@ -484,8 +495,8 @@ function drawPlaceholder(canvas, theme, msg, w) {
 
 function wireNavigation(container, canvas, applyZoom, getZoom) {
   canvas.on('mouse:wheel', (opt) => {
-    const delta = opt.e.deltaY;
-    applyZoom(getZoom() * 0.999 ** delta);
+    if (!opt.e.ctrlKey) return; // plain wheel scrolls the container; Ctrl+wheel zooms
+    applyZoom(getZoom() * 0.999 ** opt.e.deltaY);
     opt.e.preventDefault();
     opt.e.stopPropagation();
   });
