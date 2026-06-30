@@ -128,6 +128,24 @@ diagram type="system" title="Web app — request path" theme="light" {
   </section>
 
   <section>
+    <h2>custom SVG icons — <code>icon src="…"</code></h2>
+    <p class="cap">drop in your own line-art SVG (inline string, data-URI, or URL) — loaded async into a corner
+      badge, with <code>pos=</code> (tl/tr/bl/br/center) and <code>scale=</code>. Inline works over file:// (no fetch).</p>
+    <div class="diagrama stage"><script type="application/diagrama+kdl">
+diagram type="system" title="Custom icons" theme="light" {
+    layout engine="dagre" direction="LR" spacing=60
+    node "a" label="Service A" kind="service" {
+        icon src="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2 L4 14 L11 14 L9 22 L20 9 L13 9 Z' fill='#e07b39' stroke='#3a4256' stroke-width='1.5'/></svg>"
+    }
+    node "b" label="Service B" kind="service" {
+        icon pos="tr" scale=0.6 src="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='10' fill='none' stroke='#3a4256' stroke-width='2'/><path d='M16 6 v20 M6 16 h20' stroke='#e07b39' stroke-width='2'/></svg>"
+    }
+    edge "a" "b" kind="dependency" label="uses"
+}
+    </script></div>
+  </section>
+
+  <section>
     <h2>system — isometric view (spike) <code>view="iso"</code></h2>
     <p class="cap">line-art 2.5D: reception desk = gateway, brick wall = firewall, splitter = load balancer,
       server racks = web cluster, shelves/lockers = cache &amp; database. Original sprites.</p>

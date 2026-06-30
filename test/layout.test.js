@@ -66,6 +66,11 @@ describe('layout on real examples', () => {
     expect(color('spec')).not.toBe(color('api'));
   });
 
+  it('parses an icon src/pos/scale spec on a node', () => {
+    const m = buildModel(`diagram type="system" { node "a" kind="service" { icon src="<svg/>" pos="tr" scale=0.6 } }`);
+    expect(m.nodes[0].iconSpec).toEqual({ src: '<svg/>', pos: 'tr', scale: 0.6 });
+  });
+
   it('lays out the pipeline example as a graph', () => {
     const m = buildModel(read('pipeline-build-deploy.diagrama.kdl'));
     const lo = layoutGraph({ ...m, nodes: m.steps, groups: m.groups });

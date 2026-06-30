@@ -2,7 +2,7 @@
 // Browser-only (needs a DOM canvas). Dispatches by diagram type; system and gantt are
 // implemented, other types draw a "not yet" placeholder so the bundle stays whole.
 
-import { Canvas, Rect, Ellipse, Circle, Textbox, Line, Polygon, Polyline, Path, FabricText, Group as FabricGroup } from 'fabric';
+import { Canvas, Rect, Ellipse, Circle, Textbox, Line, Polygon, Polyline, Path, FabricText, Group as FabricGroup, loadSVGFromString, loadSVGFromURL } from 'fabric';
 import { layout, memberLine } from './layout.js';
 import { setPos, emit } from './kdl.js';
 
@@ -175,6 +175,9 @@ export function render(container, model, opts = {}) {
   wireNavigation(container, canvas, applyZoom, () => zoom);
   if (!opts.readOnly && opts.onPersist && lo.kind === 'graph') {
     wirePersist(canvas, model, opts.onPersist);
+  }
+  if (model.type === 'system' && lo.kind === 'graph') { // async SVG icons (icon src=…)
+    for (const id in lo.nodes) { const n = lo.nodes[id]; if (n.el.iconSpec?.src) placeIcon(canvas, n, n.el.iconSpec); }
   }
   canvas.requestRenderAll();
   return {
@@ -766,6 +769,33 @@ function wirePersist(canvas, model, onPersist) {
     setPos(model.doc, o.data.id, Math.round(o.left), Math.round(o.top));
     onPersist(emit(model.doc));
   });
+}
+
+/**
+ * Load an SVG icon (inline `<svg…>` string, data-URI, or URL) and place it as a badge on
+ * the node. Async + fire-and-forget: a missing/invalid icon just leaves the node as-is.
+ * Inline strings work without fetch (so they render over file://).
+ */
+async function placeIcon(canvas, n, spec) {
+  const src = String(spec.src || '').trim();
+  if (!src) return;
+  try {
+    const out = src.startsWith('<') ? await loadSVGFromString(src) : await loadSVGFromURL(src);
+    const objs = (out.objects || []).filter(Boolean);
+    if (!objs.length) return;
+    const g = new FabricGroup(objs, { selectable: false, evented: false });
+    const target = (spec.scale ? Number(spec.scale) : 0.5) * Math.min(n.width, n.height);
+    const s = target / Math.max(g.width || 1, g.height || 1);
+    g.scale(s);
+    const gw = (g.width || 0) * s, gh = (g.height || 0) * s;
+    const anchor = spec.pos || 'tl'; // tl (default) · tr · bl · br · center
+    const hx = n.width / 2 - 4 - gw / 2, hy = n.height / 2 - 4 - gh / 2;
+    const dx = anchor === 'center' ? 0 : anchor.includes('r') ? hx : -hx;
+    const dy = anchor === 'center' ? 0 : anchor.includes('b') ? hy : -hy;
+    g.set({ originX: 'center', originY: 'center', left: n.x + dx, top: n.y + dy });
+    canvas.add(g);
+    canvas.requestRenderAll();
+  } catch { /* ignore: keep the node without the icon */ }
 }
 
 function makeGroup(objects, opts) {

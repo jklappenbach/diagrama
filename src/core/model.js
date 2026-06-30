@@ -141,6 +141,8 @@ export function buildModel(textOrDoc, opts = {}) {
           attrs: attrs.length ? attrs : undefined,
           methods: methods.length ? methods : undefined,
         };
+        const iconNode = childByName(c, 'icon');
+        if (iconNode) el.iconSpec = { name: args(iconNode)[0], ...props(iconNode) }; // { name?, src?, pos?, scale? }
         (name === 'step' ? m.steps : m.nodes).push(el);
         break;
       }
